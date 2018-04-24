@@ -1,0 +1,10 @@
+[package]
+name = "fractions_and_matrices"
+version = "0.1.0"
+authors = ["prima"]
+
+[dependencies]
+rand = "*"
+
+[features]
+nightly_build = []
