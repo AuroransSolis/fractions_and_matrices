@@ -1,10 +1,9 @@
 #![allow(dead_code)]
 
 use std::fmt;
-use std::convert;
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign};
 
-use fractions::Fraction;
+use fractions::fractions::Fraction;
 
 #[derive(Clone)]
 pub struct FracMatrix {
