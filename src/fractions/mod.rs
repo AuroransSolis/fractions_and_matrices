@@ -1,4 +1,4 @@
-#[macro_use] mod fraction_macros;
-mod fractions;
-mod fraction_comparisons;
-mod fraction_operator_overloads;
+#[macro_use] pub mod fraction_macros;
+pub mod fractions;
+pub mod fraction_comparisons;
+pub mod fraction_operator_overloads;

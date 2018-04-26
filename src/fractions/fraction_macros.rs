@@ -1,7 +1,3 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Rem, RemAssign, Neg};
-
-use fractions;
-
 #[macro_export]
 macro_rules! integer_into_frac {
     ($($t:ty)*) => ($(

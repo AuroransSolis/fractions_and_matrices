@@ -1,10 +1,7 @@
 #![allow(dead_code)]
 
+use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Rem, RemAssign};
 use std::fmt;
-
-#[macro_use] use fractions::fraction_macros::*;
-use fractions::fraction_operator_overloads;
-use fractions::fraction_comparisons;
 
 #[derive(Clone, Copy, PartialOrd, Debug)]
 pub struct Fraction {
