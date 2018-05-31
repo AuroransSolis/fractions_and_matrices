@@ -1,7 +1,6 @@
 use std::cmp;
 
 use matrix_base::*;
-use fractions::*;
 
 impl Matrix {
     pub fn determinant(&self) -> Result<i64, MatrixError> {

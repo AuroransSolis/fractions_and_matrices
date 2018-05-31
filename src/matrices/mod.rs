@@ -1,5 +1,10 @@
-#[macro_use] pub mod matrix_base;
+pub mod matrix_base;
+mod matrix_operator_overloads;
+mod matrix_display;
+mod matrix_format;
+mod matrix_try_arithmetic;
 pub mod matrix_functions;
 pub mod matrix_transforms;
+#[macro_use] pub mod matrix_macros;
 #[cfg(nightly)] pub mod matrix_simd_functions;
 #[cfg(nightly)] pub mod matrix_simd_transforms;

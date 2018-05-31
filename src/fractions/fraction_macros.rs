@@ -60,36 +60,8 @@ macro_rules! from_frac {
 
 #[macro_export]
 macro_rules! fraction {
-    ($($num:ident), *) => {{
-        Fraction::from($num)
-    }};
-
     ($($num:expr), *) => {{
         Fraction::from($num)
-    }};
-
-    ($($num:ident, $den:ident)*) => {{
-        Fraction {
-            num: $num as i64,
-            den: $den as i64,
-            ud: false
-        }
-    }};
-
-    ($($num:ident, $den:expr)*) => {{
-        Fraction {
-            num: $num as i64,
-            den: $den as i64,
-            ud: false
-        }
-    }};
-
-    ($($num:expr, $den:ident)*) => {{
-        Fraction {
-            num: $num as i64,
-            den: $den as i64,
-            ud: false
-        }
     }};
 
     ($($num:expr, $den:expr)*) => {{

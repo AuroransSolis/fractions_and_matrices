@@ -1,5 +1,8 @@
 #[macro_use] pub mod fractions;
-pub mod matrix_base;
+pub mod matrices;
+
+use fractions::*;
+use matrices::*;
 
 #[cfg(test)]
 mod tests {
