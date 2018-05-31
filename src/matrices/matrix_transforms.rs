@@ -1,6 +1,6 @@
 use matrices::matrix_base::*;
 
-pub struct TSOpts {
+pub(crate) struct TSOpts {
     try: bool,
     print: bool
 }
@@ -11,21 +11,127 @@ pub const TRY_NOPRINT: TSOpts = TSOpts { try: true, print: false };
 
 pub const TRY_PRINT: TSOpts = TSOpts { try: true, print: true };
 
+trait RowOpAdd {
+    fn row_op_add(&mut self, target: usize, tool: usize);
+}
+
+impl<T: AddAssign> RowOpAdd for Matrix<T> {
+    fn row_op_add(&mut self, target: usize, tool: usize) {
+        if self.is_row_aligned() {
+            for b in 0..self.num_columns() {
+                self[target][b] += self[tool][b];
+            }
+        } else {
+            for b in 0..self.num_columns() {
+                self((target, b)) += self((tool, b));
+            }
+        }
+    }
+}
+
+trait RowOpSub {
+    fn row_op_sub(&mut self, target: usize, tool: usize);
+}
+
+impl<T: SubAssign> RowOpSub for Matrix<T> {
+    fn row_op_sub(&mut self, target: usize, tool: usize) {
+        if self.is_row_aligned() {
+            for b in 0..self.num_columns() {
+                self[target][b] -= self[tool][b];
+            }
+        } else {
+            for b in 0..self.num_columns() {
+                self((target, b)) -= self((tool, b));
+            }
+        }
+    }
+}
+
+trait RowOpMul<scalar = usize> {
+    fn row_op_mul(&mut self, target: usize, tool: scalar);
+}
+
+impl<T, U> RowOpMul for Matrix<T>
+    where T: MulAssign<U> {
+    fn row_op_mul(&mut self, target: usize, tool: U) {
+        if self.is_row_aligned() {
+            for b in 0..self.num_columns() {
+                self[target][b] *= tool;
+            }
+        } else {
+            for b in 0..self.num_columns() {
+                self((target, b)) *= tool;
+            }
+        }
+    }
+}
+
+trait RowOpDiv<scalar = usize> {
+    fn row_op_div(&mut self, target: usize, tool: scalar);
+}
+
+impl<T, U> RowOpDiv for Matrix<T>
+    where T: DivAssign<U> {
+    fn row_op_div(&mut self, target: usize, tool: U) {
+        if self.is_row_aligned() {
+            for b in 0..self.num_columns() {
+                self[target][b] /= tool;
+            }
+        } else {
+            for b in 0..self.num_columns() {
+                self((target, b)) /= tool;
+            }
+        }
+    }
+}
+
+trait TrySimplify {
+    fn try_simplify(&mut self, print_steps: bool) -> Result<(), MatrixError>;
+}
+
+trait Simplify {
+    fn simplify(&mut self, print_steps: bool);
+}
+
+trait Inv {
+    fn inverse(&self) -> Self;
+}
+
+impl<T: Div + From<i64>> Inv for T {
+    fn inverse(&self) -> Self {
+        1u64.into() / self
+    }
+}
+
+macro_rules! REF_contents {
+    ($fn_name:ident) => { }
+}
+
+macro_rules! try_REF_contents {
+    ($fn_name:ident) => { }
+}
+
 trait REF {
-    fn try_gaussian(&mut self) -> Result<(), MatrixError>;
-    fn gaussian(&mut self);
+    fn try_gaussian(&mut self, print_steps: bool) -> Result<(), MatrixError>;
+    fn gaussian(&mut self, print_steps: bool);
     fn is_REF(&self) -> bool;
 }
 
 trait RREF {
-    fn try_gauss_jordan(&mut self) -> Result<(), MatrixError>;
-    fn gauss_jordan(&mut self);
+    fn try_gauss_jordan(&mut self, print_steps: bool) -> Result<(), MatrixError>;
+    fn gauss_jordan(&mut self, print_steps: bool);
     fn is_RREF(&self) -> bool;
 }
 
-impl<T> Matrix<T> {
-    pub fn check_ref(&self) -> bool {
-        for a in 0..self.dimension.0 {
+impl<T: > REF for Matrix<T> {
+    fn try_gaussian(&mut self, print_steps: bool) -> Result<(), MatrixError> {
+
+    }
+
+    REF_contents!{gaussian}
+
+    fn is_REF(&self) -> bool {
+        for a in 0..self.num_rows() {
             for b in 0..a {
                 if !(&self.matrix[a][b]).eq(&Frac::from(0)) {
                     return false;
@@ -37,9 +143,19 @@ impl<T> Matrix<T> {
         }
         true
     }
+}
 
-    pub fn check_rref(&self) -> bool {
-        for b in 1..self.dimension.0 {
+impl<T> RREF for Matrix<T> {
+    fn try_gauss_jordan(&mut self, print_steps: bool) -> Result<(), MatrixError> {
+
+    }
+
+    fn gauss_jordan(&mut self, print_steps: bool) {
+
+    }
+
+    fn is_RREF(&self) -> bool {
+        for b in 1..self.num_rows() {
             for a in 0..b {
                 if self.matrix[a][b] != Frac::from(0) {
                     return false;
@@ -50,6 +166,16 @@ impl<T> Matrix<T> {
     }
 }
 
+trait Inverse {
+    fn inverse(&self, print_steps: bool);
+    fn try_inverse(&self, print_steps: bool);
+}
+
+trait InverseAssign {
+    fn inverse_assign(&mut self, print_steps: bool);
+    fn try_inverse_assign(&mut self, print_steps: bool);
+}
+
 pub mod transforms {
     use std::cmp;
     use fracs::*;
@@ -57,51 +183,7 @@ pub mod transforms {
     use matrix_base::format::*;
     use matrix_base::MatrixError;
 
-    enum RowOps {
-        Add((usize, usize)),
-        Sub((usize, usize)),
-        Mul((usize, Frac)),
-        Div((usize, Frac)),
-        SwapRows((usize, usize)),
-        TrySimplify((usize, bool)),
-        TrySimplifyUnchecked((usize, bool))
-    }
-
     impl FracMatrix {
-        fn row_op(&mut self, op: RowOps) {
-            match op {
-                RowOps::Add(tup) => {
-                    for b in 0..self.dimension.1 {
-                        self.matrix[tup.0][b] = self.matrix[tup.0][b].add(self.matrix[tup.1][b]);
-                    }
-                },
-                RowOps::Sub(tup) => {
-                    for b in 0..self.dimension.1 {
-                        self.matrix[tup.0][b] = self.matrix[tup.0][b].sub(self.matrix[tup.1][b]);
-                    }
-                },
-                RowOps::Mul(tup) => {
-                    for b in 0..self.dimension.1 {
-                        self.matrix[tup.0][b] = self.matrix[tup.0][b].mul(tup.1);
-                    }
-                },
-                RowOps::Div(tup) => {
-                    for b in 0..self.dimension.1 {
-                        self.matrix[tup.0][b] = self.matrix[tup.0][b].div(tup.1);
-                    }
-                },
-                RowOps::SwapRows(tup) => {
-                    self.matrix.swap(tup.0, tup.1);
-                },
-                RowOps::TrySimplify(tup) => {
-                    drop(self.try_simplify(tup.0, tup.1));
-                },
-                RowOps::TrySimplifyUnchecked(tup) => {
-                    self.try_simplify_unchecked(tup.0, tup.1);
-                }
-            }
-        }
-
         pub fn try_simplify_matrix(&mut self, print_steps: bool) {
             println!("Attempting to simplify matrix.\n");
             let mut did_simplification = false;
@@ -265,35 +347,6 @@ pub mod transforms {
                 }
             }
             false
-        }
-
-        // Wrapper functions for convenience
-        pub fn row_ops_add(&mut self, target_row: usize, tool: usize) {
-            self.row_op(RowOps::Add((target_row, tool)));
-        }
-
-        pub fn row_ops_sub(&mut self, target_row: usize, tool: usize) {
-            self.row_op(RowOps::Sub((target_row, tool)));
-        }
-
-        pub fn row_ops_mul(&mut self, target_row: usize, amt: Frac) {
-            self.row_op(RowOps::Mul((target_row, amt)));
-        }
-
-        pub fn row_ops_div(&mut self, target_row: usize, amt: Frac) {
-            self.row_op(RowOps::Div((target_row, amt)));
-        }
-
-        pub fn row_ops_swap(&mut self, row1: usize, row2: usize) {
-            self.row_op(RowOps::SwapRows((row1, row2)));
-        }
-
-        pub fn row_ops_try_simplify(&mut self, row: usize, print_steps: bool) {
-            self.row_op(RowOps::TrySimplify((row, print_steps)));
-        }
-
-        pub fn row_ops_try_simplify_unchecked(&mut self, row: usize, print_steps: bool) {
-            self.row_op(RowOps::TrySimplifyUnchecked((row, print_steps)));
         }
 
         pub fn row_echelon_form(&mut self, print_steps: bool) {

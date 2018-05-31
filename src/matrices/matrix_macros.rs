@@ -27,7 +27,7 @@ macro_rules! matrix {
             alignment: $alignment
         }
     )*);
-    ($([$([($a:expr),* | $val:expr]); *] E $alignment:expr),* ) => (*(
+    ($([$([($a:expr),* | $val:expr]); *] E $alignment:expr),* ) => ($(
         let mut matr = Vec::new();
         let mut lens = Vec::new();
         let mut
@@ -53,5 +53,5 @@ macro_rules! matrix {
             matrix: matr,
             alignment: $alignment
         }
-    )$);
+    )*);
 }
