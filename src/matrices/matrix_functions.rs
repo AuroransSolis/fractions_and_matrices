@@ -2,6 +2,16 @@ use std::cmp;
 
 use matrix_base::*;
 
+trait Inverse {
+    fn inverse(&self, print_steps: bool);
+    fn try_inverse(&self, print_steps: bool);
+}
+
+trait InverseAssign {
+    fn inverse_assign(&mut self, print_steps: bool);
+    fn try_inverse_assign(&mut self, print_steps: bool);
+}
+
 impl Matrix {
     pub fn determinant(&self) -> Result<i64, MatrixError> {
         if self.dimension.0 != self.dimension.1 {

@@ -1,5 +1,3 @@
-use matrices::matrix_base::{AugmentedMatrix, Matrix};
-
 #[macro_export]
 macro_rules! matrix {
     ($([$([($a:expr), *]); *] E $alignment:expr)*, ) => ($(

@@ -47,8 +47,8 @@ impl<T: SubAssign> RowOpSub for Matrix<T> {
     }
 }
 
-trait RowOpMul<scalar = usize> {
-    fn row_op_mul(&mut self, target: usize, tool: scalar);
+trait RowOpMul<Scalar = usize> {
+    fn row_op_mul(&mut self, target: usize, tool: Scalar);
 }
 
 impl<T, U> RowOpMul for Matrix<T>
@@ -164,16 +164,6 @@ impl<T> RREF for Matrix<T> {
         }
         true
     }
-}
-
-trait Inverse {
-    fn inverse(&self, print_steps: bool);
-    fn try_inverse(&self, print_steps: bool);
-}
-
-trait InverseAssign {
-    fn inverse_assign(&mut self, print_steps: bool);
-    fn try_inverse_assign(&mut self, print_steps: bool);
 }
 
 pub mod transforms {
