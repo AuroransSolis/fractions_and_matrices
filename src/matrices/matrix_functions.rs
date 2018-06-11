@@ -1,18 +1,9 @@
 use std::cmp;
 
 use matrix_base::*;
+use matrices::matrix_base::{Matrix, MatrixError};
 
-trait Inverse {
-    fn inverse(&self, print_steps: bool);
-    fn try_inverse(&self, print_steps: bool);
-}
-
-trait InverseAssign {
-    fn inverse_assign(&mut self, print_steps: bool);
-    fn try_inverse_assign(&mut self, print_steps: bool);
-}
-
-impl Matrix {
+impl<T> Matrix<T> {
     pub fn determinant(&self) -> Result<i64, MatrixError> {
         if self.dimension.0 != self.dimension.1 {
             return MatrixError::FunctionError("Matrix is not square - cannot calculate determinant".to_string());

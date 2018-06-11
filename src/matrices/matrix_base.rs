@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
 use std::fmt;
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign};
 
 use fractions::fractions::Fraction;
 

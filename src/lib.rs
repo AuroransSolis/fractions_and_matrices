@@ -1,3 +1,5 @@
+#![allow(unused_macros)]
+
 #[macro_use] pub mod fractions;
 pub mod matrices;
 

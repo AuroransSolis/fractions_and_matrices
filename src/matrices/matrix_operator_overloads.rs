@@ -1,6 +1,7 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Index, IndexMut};
+use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Index, IndexMut, Range};
 
 use matrices::matrix_base::{AugmentedMatrix, Matrix, Alignment};
+use matrices::matrix_transforms::Inverse;
 
 macro_rules! matrix_index_methods {
     ($($target_type:ty)* ) => ($(
@@ -9,8 +10,8 @@ macro_rules! matrix_index_methods {
 
             fn index<'a>(&'a self, index: (usize, usize)) -> &'a T {
                 match self.alignment {
-                    &Alignment::RowAligned => &self[row][column],
-                    &Alignment::ColumnAligned => &self[column][row]
+                    &Alignment::RowAligned => &self[index.0][index.1],
+                    &Alignment::ColumnAligned => &self[index.1][index.0]
                 }
             }
         }
@@ -23,11 +24,19 @@ macro_rules! matrix_index_methods {
             }
         }
 
+        impl<T> Index<Range<usize>> for $target_type {
+            type Output = [T];
+
+            fn index<'a>(&'a self, index: Range<usize>) -> &'a [T] {
+                self.matrix.as_slice()[(index.start * self.columns)..(index.end * self.columns)]
+            }
+        }
+
         impl<T> IndexMut<(usize, usize)> for $target_type {
             fn index_mut<'a>(&'a mut self, index: (usize, usize)) -> &'a mut T {
                 match self.alignment {
-                    &Alignment::RowAligned => &mut self[row][column],
-                    &Alignment::ColumnAligned => &mut self[column][row]
+                    &Alignment::RowAligned => &mut self[index.0][index.1],
+                    &Alignment::ColumnAligned => &mut self[index.1][index.0]
                 }
             }
         }
@@ -35,6 +44,12 @@ macro_rules! matrix_index_methods {
         impl<T> IndexMut<usize> for $target_type {
             fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut [T] {
                 self.matrix.as_mut_slice()[(index * self.columns)..((index + 1) * self.columns)]
+            }
+        }
+
+        impl<T> IndexMut<Range<usize>> for $target_type {
+            fn index_mut<'a>(&'a mut self, index: Range<usize>) -> &'a mut T {
+                self.matrix.as_mut_slice()[(index.start * self.columns)..(index.end * self.columns)]
             }
         }
     )*)
@@ -337,9 +352,10 @@ matrix_forward_ref_op_assign!{MulAssign, mul_assign, Matrix<T>}
 
 impl<T, U> DivAssign<Matrix<U>> for Matrix<T>
     where
-        T: Add + AddAssign + Sub + SubAssign + Mul + MulAssign + Div + DivAssign + Clone + From<i32>
+        T: Add + AddAssign + Sub + SubAssign + Mul + MulAssign + Clone + From<i32>
         + From<U> + From<<T as Mul<T>>::Output>,
-        U: Mul<T> + Mul + Clone + Mul<U>, {
+        U: Mul<T> + Mul + Clone + Mul<U>,
+        Matrix<U>: Inverse, {
     fn div_assign(&mut self, rhs: Matrix<U>) {
         mul_div_valid_operation_check(self.get_dimension(), rhs.get_dimension());
         if let Ok(inv) = rhs.inverse() {
