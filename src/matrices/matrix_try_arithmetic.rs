@@ -214,7 +214,11 @@ impl<T, U> TryMulMatrices<Matrix<U>> for Matrix<T>
     }
 }
 
-impl<'a, T, U> TryMulMatrices for Matrix<T> {
+impl<'a, T, U> TryMulMatrices for Matrix<T>
+    where
+        T: AddAssign + Mul<T> + Clone + From<i32>,
+        U: Into<T> + Clone,
+        <T as Mul<T>>::Output: Into<T>, {
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_mul(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
@@ -222,7 +226,11 @@ impl<'a, T, U> TryMulMatrices for Matrix<T> {
     }
 }
 
-impl<'a, T, U> TryMulMatrices<Matrix<U>> for &'a Matrix<T> {
+impl<'a, T, U> TryMulMatrices<Matrix<U>> for &'a Matrix<T>
+    where
+        T: AddAssign + Mul<T> + Clone + From<i32>,
+        U: Into<T> + Clone,
+        <T as Mul<T>>::Output: Into<T>, {
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_mul(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
@@ -230,7 +238,11 @@ impl<'a, T, U> TryMulMatrices<Matrix<U>> for &'a Matrix<T> {
     }
 }
 
-impl<'a, 'b, T, U> TryMulMatrices<&'b Matrix<U>> for &'a Matrix<T> {
+impl<'a, 'b, T, U> TryMulMatrices<&'b Matrix<U>> for &'a Matrix<T>
+    where
+        T: AddAssign + Mul<T> + Clone + From<i32>,
+        U: Into<T> + Clone,
+        <T as Mul<T>>::Output: Into<T>, {
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_mul(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
@@ -281,7 +293,13 @@ impl<T, U> TryDivMatrices<Matrix<U>> for Matrix<T>
 
 
 
-impl<'a, T, U> TryDivMatrices for Matrix<T> {
+impl<'a, T, U> TryDivMatrices for Matrix<T>
+    where
+        T: Add + AddAssign + Mul + Clone + From<i32>
+        + From<U> + From<<T as Mul<T>>::Output>,
+        U: Mul<T> + Mul + Clone + Mul<U>,
+        Matrix<U>: Inverse,
+        <T as Mul>::Output: Into<T>, {
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_div(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
@@ -289,7 +307,13 @@ impl<'a, T, U> TryDivMatrices for Matrix<T> {
     }
 }
 
-impl<'a, T, U> TryDivMatrices<Matrix<U>> for &'a Matrix<T> {
+impl<'a, T, U> TryDivMatrices<Matrix<U>> for &'a Matrix<T>
+    where
+        T: Add + AddAssign + Mul + Clone + From<i32>
+        + From<U> + From<<T as Mul<T>>::Output>,
+        U: Mul<T> + Mul + Clone + Mul<U>,
+        Matrix<U>: Inverse,
+        <T as Mul>::Output: Into<T>, {
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_div(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
@@ -297,7 +321,13 @@ impl<'a, T, U> TryDivMatrices<Matrix<U>> for &'a Matrix<T> {
     }
 }
 
-impl<'a, 'b, T, U> TryDivMatrices<&'b Matrix<U>> for &'a Matrix<T> {
+impl<'a, 'b, T, U> TryDivMatrices<&'b Matrix<U>> for &'a Matrix<T>
+    where
+        T: Add + AddAssign + Mul + Clone + From<i32>
+        + From<U> + From<<T as Mul<T>>::Output>,
+        U: Mul<T> + Mul + Clone + Mul<U>,
+        Matrix<U>: Inverse,
+        <T as Mul>::Output: Into<T>, {
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_div(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {

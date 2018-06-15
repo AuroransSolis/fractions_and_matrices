@@ -1,4 +1,5 @@
 #![allow(unused_macros)]
+pub extern crate num;
 
 #[macro_use] pub mod fractions;
 pub mod matrices;

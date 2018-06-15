@@ -5,6 +5,7 @@ authors = ["prima"]
 
 [dependencies]
 rand = "*"
+num = "*"
 
 [features]
 nightly_build = []

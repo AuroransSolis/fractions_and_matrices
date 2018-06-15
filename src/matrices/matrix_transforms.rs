@@ -1,22 +1,25 @@
+use num::{One, Zero};
+
 use std::ops::{AddAssign, SubAssign, MulAssign, Div, DivAssign, Rem, Range};
 use std::cmp::{Eq, PartialEq};
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use matrices::matrix_base::*;
 
-pub(crate) struct TSOpts {
-    try: bool,
-    print: bool
-}
-
-pub const NOTRY_NOPRINT: TSOpts = TSOpts { try: false, print: false };
-
-pub const TRY_NOPRINT: TSOpts = TSOpts { try: true, print: false };
-
-pub const TRY_PRINT: TSOpts = TSOpts { try: true, print: true };
-
 trait RowOpAdd {
     fn row_op_add(&mut self, target: usize, tool: usize);
+}
+
+trait RowOpSub {
+    fn row_op_sub(&mut self, target: usize, tool: usize);
+}
+
+trait RowOpMul<Scalar = usize> {
+    fn row_op_mul(&mut self, target: usize, tool: Scalar);
+}
+
+trait RowOpDiv<scalar = usize> {
+    fn row_op_div(&mut self, target: usize, tool: scalar);
 }
 
 impl<T: AddAssign> RowOpAdd for Matrix<T> {
@@ -33,10 +36,6 @@ impl<T: AddAssign> RowOpAdd for Matrix<T> {
     }
 }
 
-trait RowOpSub {
-    fn row_op_sub(&mut self, target: usize, tool: usize);
-}
-
 impl<T: SubAssign> RowOpSub for Matrix<T> {
     fn row_op_sub(&mut self, target: usize, tool: usize) {
         if self.is_row_aligned() {
@@ -51,11 +50,7 @@ impl<T: SubAssign> RowOpSub for Matrix<T> {
     }
 }
 
-trait RowOpMul<Scalar = usize> {
-    fn row_op_mul(&mut self, target: usize, tool: Scalar);
-}
-
-impl<T, U> RowOpMul for Matrix<T>
+impl<T, U> RowOpMul<U> for Matrix<T>
     where T: MulAssign<U> {
     fn row_op_mul(&mut self, target: usize, tool: U) {
         if self.is_row_aligned() {
@@ -70,11 +65,7 @@ impl<T, U> RowOpMul for Matrix<T>
     }
 }
 
-trait RowOpDiv<scalar = usize> {
-    fn row_op_div(&mut self, target: usize, tool: scalar);
-}
-
-impl<T, U> RowOpDiv for Matrix<T>
+impl<T, U> RowOpDiv<U> for Matrix<T>
     where T: DivAssign<U> {
     fn row_op_div(&mut self, target: usize, tool: U) {
         if self.is_row_aligned() {
@@ -89,7 +80,10 @@ impl<T, U> RowOpDiv for Matrix<T>
     }
 }
 
-fn gcd<T: Rem + PartialEq>(a: T, b: T) {
+trait Gcd: Rem + PartialEq {}
+impl<T: Rem + PartialEq> Gcd for T {}
+
+fn gcd<T: Gcd>(a: T, b: T) {
     if b == 0 {
         return a;
     } else {
@@ -98,191 +92,170 @@ fn gcd<T: Rem + PartialEq>(a: T, b: T) {
 }
 
 trait Simplify {
-    fn simplify(self, rows: Range<usize>) -> Self;
+    fn simplify_row(&mut self, row: usize);
+    fn simplify_rows(&mut self, rows: Range<usize>);
+    fn simplify_matrix(&mut self);
 }
 
-trait SimplifyPrintStepsDisplay {
-    fn simplify_print_steps_display(self, row: Range<usize>) -> Self;
+trait SimplifyGetStepsDisplay {
+    fn simplify_row_get_steps_ds(&mut self, row: usize) -> Option<String>;
+    fn simplify_rows_get_steps_ds(&mut self, row: usize) -> Option<Vec<Option<String>>>;
+    fn simplify_matrix_get_steps_ds(&mut self) -> Option<Vec<Option<String>>>;
 }
 
-trait SimplifyPrintStepsDebug {
-    fn simplify_print_steps_debug(self, row: Range<usize>) -> Self;
+trait SimplifyGetStepsDebug {
+    fn simplify_row_get_steps_db(&mut self, row: usize) -> Option<String>;
+    fn simplify_rows_get_steps_db(&mut self, row: usize) -> Option<String>;
+    fn simplify_matrix_get_steps_db(&mut self) -> Option<String>;
 }
 
-trait SimplifyAssign {
-    fn simplify_assign(&mut self, rows: Range<usize>);
-}
+trait SimplifyTraits: Div + DivAssign + Gcd + Zero + One + PartialEq {}
+impl<T: Div + DivAssign + Gcd + Zero + One + PartialEq> SimplifyTraits for T {}
 
-trait SimplifyAssignPrintStepsDisplay {
-    fn simplify_assign_print_steps_display(&mut self, rows: Range<usize>);
-}
-
-trait SimplifyAssignPrintStepsDebug {
-    fn simplify_assign_print_steps_debug(&mut self, rows: Range<usize>);
-}
-
-impl<T: Div + Gcd> Matrix<T> {
-    fn simplify_row(&self, row: usize) -> Option<Vec<T>> {
-        if self.num_columns() < 2 {
-            return None;
-        }
-        let mut row_gcd = gcd(self[row][0], self[row][1]);
-        if self.is_row_aligned() {
-            for i in 1..self.num_columns() {
-                row_gcd = gcd(row_gcd, self[row][i]);
-                if row_gcd == 1 {
-                    return None;
-                }
-            }
-        } else {
-            for i in 1..self.num_columns() {
-                row_gcd = gcd(row_gcd, self[row][i]);
-                if row_gcd == 1 {
-                    return None;
-                }
-            }
-        }
-        if self.is_row_aligned() {
-            Some((0..self.num_columns()).map(|i| self[row][i] / row_gcd)
-                .collect::<Vec<T>>())
-        } else {
-            Some((0..self.num_columns()).map(|i| self[(row, i)] / row_gcd)
-                .collect::<Vec<T>>())
-        }
-    }
-
-    fn simplify_assign_row(&mut self, row: usize) {
+impl<T: SimplifyTraits> Simplify for Matrix<T> {
+    fn simplify_row(&mut self, row: usize) {
         if self.num_columns() < 2 {
             return;
         }
-        let mut row_gcd = gcd(self[row][0], self[row][1]);
+        let mut row_gcd = if self.is_row_aligned() {
+            gcd(self[row][0], self[row][1])
+        } else {
+            gcd(self[(row, 0)], self[(row, 1)])
+        };
+        for i in 2..self.num_columns() {
+            if self[(row, i)].is_zero() {
+                continue;
+            }
+            row_gcd = if self.is_row_aligned() {
+                gcd(row_gcd, self[row][i])
+            } else {
+                gcd(row_gcd, self[(row, i)])
+            };
+            if row_gcd == T::one() {
+                return;
+            }
+        }
         if self.is_row_aligned() {
-            for i in 1..self.num_coluns() {
-                row_gcd = gcd(row_gcd, self[row][i]);
-                if row_gcd == 1 {
-                    return;
-                }
+            for e in self[row].iter_mut() {
+                e /= row_gcd;
             }
         } else {
-            for i in 1..self.num_columns() {
-                row_gcd = gcd(row_gcd, self[(row, i)]);
-                if row_gcd == 1 {
-                    return;
-                }
+            for i in (r * self.num_columns())..((r + 1) * self.num_columns()) {
+                self[(row, i)] /= row_gcd;
+            }
+        }
+    }
+
+    fn simplify_rows(&mut self, rows: Range<usize>) {
+        for r in rows {
+            self.simplify_row(r);
+        }
+    }
+
+    fn simplify_matrix(&mut self) {
+        self.simplify_rows((0..self.num_rows()));
+    }
+}
+
+impl<T: SimplifyTraits + Display> SimplifyGetStepsDisplay for Matrix<T> {
+    fn simplify_row_get_steps_ds(&mut self, row: usize) -> Option<String> {
+        if self.num_columns() < 2 {
+            return None;
+        }
+        let mut row_gcd = if self.is_row_aligned() {
+            gcd(self[row][0], self[row][1])
+        } else {
+            gcd(self[(row, 0)], self[(row, 1)])
+        };
+        for i in 2..self.num_columns() {
+            if self[(row, i)].is_zero() {
+                continue;
+            }
+            row_gcd = if self.is_row_aligned() {
+                gcd(row_gcd, self[row][i])
+            } else {
+                gcd(row_gcd, self[(row, i)])
+            };
+            if row_gcd == T::one() {
+                return None;
             }
         }
         if self.is_row_aligned() {
-            self[row].iter_mut().map(|e| e / row_gcd);
-        }
-    }
-}
-
-macro_rules! print_steps_db_dp {
-    (($req_trait:ident $token:tt)) => {
-        impl<T: Div + Gcd + $req_trait> Matrix<T> {
-            fn simplify_row_ps(&self, row: usize) -> Option<(Vec<T>, String)> {
-                if self.num_columns() < 2 {
-                    return None;
-                }
-                let mut row_gcd = gcd(self[row][0], self[row][1]);
-                if self.is_row_aligned() {
-                    for i in 1..self.num_columns() {
-                        row_gcd = gcd(row_gcd, self[row][i]);
-                        if row_gcd == 1 {
-                            return None;
-                        }
-                    }
-                } else {
-                    for i in 1..self.num_columns() {
-                        row_gcd = gcd(row_gcd, self[row][i]);
-                        if row_gcd == 1 {
-                            return None;
-                        }
-                    }
-                }
-                if self.is_row_aligned() {
-                    Some(((0..self.num_columns()).map(|i| self[row][i] / row_gcd)
-                              .collect::<Vec<T>>(), format!($token, row_gcd)))
-                } else {
-                    Some(((0..self.num_columns()).map(|i| self[(row, i)] / row_gcd)
-                              .collect::<Vec<T>>(), format!($token, row_gcd)))
-                }
+            for e in self[row].iter_mut() {
+                e /= row_gcd;
             }
-
-            fn simplify_assign_row_ps(&mut self, row: usize) -> Option<String> {
-                if self.num_columns() < 2 {
-                    return None;
-                }
-                let mut row_gcd = gcd(self[row][0], self[row][1]);
-                if self.is_row_aligned() {
-                    for i in 1..self.num_coluns() {
-                        row_gcd = gcd(row_gcd, self[row][i]);
-                        if row_gcd == 1 {
-                            return None;
-                        }
-                    }
-                } else {
-                    for i in 1..self.num_columns() {
-                        row_gcd = gcd(row_gcd, self[(row, i)]);
-                        if row_gcd == 1 {
-                            return None;
-                        }
-                    }
-                }
-                if self.is_row_aligned() {
-                    self[row].iter_mut().map(|e| e / row_gcd);
-                    Some(format!($token, row_gcd))
-                } else {
-                    (0..self.num_columns()).map(|i| self[(row, i)] /= row_gcd);
-                    Some(format!($token, row_gcd))
-                }
+        } else {
+            for i in (r * self.num_columns())..((r + 1) * self.num_columns()) {
+                self[(row, i)] /= row_gcd;
             }
         }
+        Some(format!("R{} / {} → R{0}", row, row_gcd))
     }
-}
 
-print_steps_db_dp!{(Display "{}")}
-print_steps_db_dp!{(Debug "{:?}")}
-
-impl<T: Gcd> Simplify for Matrix<T> {
-    fn simplify(mut self, rows: Range<usize>) -> Self {
-        for r in rows {
-            self[r] = self.simplify_row(r).as_slice();
+    fn simplify_rows_get_steps_ds(&mut self, rows: Range<usize>) -> Option<Vec<Option<String>>> {
+        if self.num_columns() < 2 {
+            return None;
         }
-        self
+        Some(rows.map(|r| self.simplify_row_get_steps_ds(r))
+            .collect::<Vec<Option<String>>>())
+    }
+
+    fn simplify_matrix_get_steps_ds(&mut self) -> Option<Vec<Option<String>>> {
+        if self.num_columns() < 2 {
+            return None;
+        }
+        self.simplify_rows_get_steps_ds((0..self.num_rows()))
     }
 }
 
-impl SimplifyAssign for Matrix<T> {
-    fn simplify_assign(&mut self, rows: Range<usize>) {
-
-    }
-}
-
-macro_rules! simplify_print_steps_impl {
-    ($imp:ident, $req_trait:ident, $trait_method:ident, $row_method:ident, $print_token:tt) => {
-        impl<T: Gcd + $req_trait> $imp for Matrix<T> {
-            fn $method(mut self, rows: Range<usize>) -> Self {
-                (self[r], scalar) = self.$row_method(r).as_slice();
-                if let Some(nr, s) = res {
-                    println!("Was able to simplify: {} * R{} → R{1}\n{}\n\n", format!($print_token, ))
-                }
+impl<T: SimplifyTraits + Debug> SimplifyGetStepsDebug for Matrix<T> {
+    fn simplify_row_get_steps_db(&mut self, row: usize) -> Option<String> {
+        if self.num_columns() < 2 {
+            return None;
+        }
+        let mut row_gcd = if self.is_row_aligned() {
+            gcd(self[row][0], self[row][1])
+        } else {
+            gcd(self[(row, 0)], self[(row, 1)])
+        };
+        for i in 2..self.num_columns() {
+            if self[(row, i)].is_zero() {
+                continue;
             }
-        }
-    }
-}
-
-impl<T: Gcd + Display> SimplifyPrintStepsDisplay for Matrix<T> {
-    fn simplify_print_steps_display(mut self, rows: Range<usize>) -> Self {
-        for r in rows {
-            res = self.simplify_row_ps(r).as_slice();
-            if let Some(nr, s) = res {
-                self[r] = nr;
-                println!("Was able to simplify: ({}) * R{} → R{1}\n{}\n\n", s, r + 1, self);
+            row_gcd = if self.is_row_aligned() {
+                gcd(row_gcd, self[row][i])
             } else {
-                println!("Was unable to simplify.");
+                gcd(row_gcd, self[(row, i)])
+            };
+            if row_gcd == T::one() {
+                return None;
             }
         }
+        if self.is_row_aligned() {
+            for e in self[row].iter_mut() {
+                e /= row_gcd;
+            }
+        } else {
+            for i in (r * self.num_columns())..((r + 1) * self.num_columns()) {
+                self[(row, i)] /= row_gcd;
+            }
+        }
+        Some(format!("R{} / {:?} → R{0}", row, row_gcd))
+    }
+
+    fn simplify_rows_get_steps_db(&mut self, rows: Range<usize>) -> Option<Vec<Option<String>>> {
+        if self.num_columns() < 2 {
+            return None;
+        }
+        Some(rows.map(|r| self.simplify_row_get_steps_db(r))
+            .collect::<Vec<Option<String>>>())
+    }
+
+    fn simplify_matrix_get_steps_db(&mut self) -> Option<Vec<Option<String>>> {
+        if self.num_columns() < 2 {
+            return None;
+        }
+        self.simplify_rows_get_steps_db((0..self.num_rows()))
     }
 }
 
@@ -296,14 +269,6 @@ impl<T: Div + From<i64>> Inv for T {
     }
 }
 
-macro_rules! REF_contents {
-    ($fn_name:ident) => { }
-}
-
-macro_rules! try_REF_contents {
-    ($fn_name:ident) => { }
-}
-
 trait REF {
     fn try_gaussian(&mut self, print_steps: bool) -> Result<(), MatrixError>;
     fn gaussian(&mut self, print_steps: bool);
@@ -314,6 +279,24 @@ trait RREF {
     fn try_gauss_jordan(&mut self, print_steps: bool) -> Result<(), MatrixError>;
     fn gauss_jordan(&mut self, print_steps: bool);
     fn is_RREF(&self) -> bool;
+}
+
+pub(crate) trait Inverse {
+    fn inverse(&self, print_steps: bool);
+    fn try_inverse(&self, print_steps: bool);
+}
+
+pub(crate) trait InverseAssign {
+    fn inverse_assign(&mut self, print_steps: bool);
+    fn try_inverse_assign(&mut self, print_steps: bool);
+}
+
+macro_rules! REF_contents {
+    ($fn_name:ident) => { }
+}
+
+macro_rules! try_REF_contents {
+    ($fn_name:ident) => { }
 }
 
 impl<T> REF for Matrix<T>
@@ -360,16 +343,6 @@ impl<T> RREF for Matrix<T> {
     }
 }
 
-pub(crate) trait Inverse {
-    fn inverse(&self, print_steps: bool);
-    fn try_inverse(&self, print_steps: bool);
-}
-
-pub(crate) trait InverseAssign {
-    fn inverse_assign(&mut self, print_steps: bool);
-    fn try_inverse_assign(&mut self, print_steps: bool);
-}
-
 pub mod transforms {
     use std::cmp;
     use fracs::*;
@@ -378,171 +351,6 @@ pub mod transforms {
     use matrix_base::MatrixError;
 
     impl FracMatrix {
-        pub fn try_simplify_matrix(&mut self, print_steps: bool) {
-            println!("Attempting to simplify matrix.\n");
-            let mut did_simplification = false;
-            for row in 0..self.matrix.len() {
-                match self.try_simplify(row, print_steps) {
-                    Ok(true) => did_simplification = true,
-                    Ok(false) => {},
-                    Err(e) => println!("Error in simplifying row {}: {}", row, e),
-                }
-            }
-            if did_simplification {
-                println!("\nWas able to simplify. New matrix:\n\n{}\n", self);
-            }
-            if !did_simplification {
-                println!("\nWas unable to simplify.\n");
-            }
-        }
-
-        pub fn try_simplify(&mut self, row: usize, print_steps: bool)
-                            -> Result<bool, String> {
-            if self.matrix[row].len() > 1 {
-                let row_vec: &Vec<Frac> = &self.clone().matrix[row];
-                let (mut plus_minus_one_count, mut neg_count, mut non_zeros) = (0, 0, Vec::new());
-                for i in 0..row_vec.len() {
-                    let tst = row_vec[i];
-                    match tst.cmp(&Frac::from(0)) {
-                        Ok(CmpRes::Eq) => {},
-                        Ok(CmpRes::Lt) => {
-                            neg_count += 1;
-                            match tst.eq(&Frac::from(-1)) {
-                                true => plus_minus_one_count += 1,
-                                false => non_zeros.push(tst)
-                            }
-                        },
-                        Ok(CmpRes::Gt) => {
-                            match tst.eq(&Frac::from(1)) {
-                                true => plus_minus_one_count += 1,
-                                false => non_zeros.push(tst)
-                            }
-                        },
-                        Err(e) => return Err(e)
-                    }
-                }
-                if neg_count == self.matrix[row].len() {
-                    for b in 0..neg_count {
-                        self.matrix[row][b] = self.matrix[row][b].negative();
-                    }
-                    if print_steps {
-                        print!("(-1) * R{} → R{0}\n{}\n\n", row, self);
-                    }
-                }
-                if non_zeros.len() > 1 {
-                    if plus_minus_one_count == 0 {
-                        let first_frac = non_zeros[0];
-                        let second_frac = non_zeros[1];
-                        let mut num_gcd = get_gcd(first_frac.num as u32, second_frac.num as u32);
-                        let mut den_gcd = get_gcd(first_frac.den as u32, second_frac.den as u32);
-                        if num_gcd == 1 && den_gcd == 1 {
-                            return Ok(false);
-                        }
-                        if non_zeros.len() > 2 {
-                            for i in 2..non_zeros.len() {
-                                let next = non_zeros[i];
-                                num_gcd = get_gcd(num_gcd, next.num as u32);
-                                den_gcd = get_gcd(den_gcd, next.den as u32);
-                                if num_gcd == 1 && den_gcd == 1 {
-                                    return Ok(false);
-                                }
-                            }
-                        }
-                        let sorta_gcd = Frac::new(num_gcd as i32, den_gcd as i32);
-                        for b in 0..row_vec.len() {
-                            self.matrix[row][b] = self.matrix[row][b].div(sorta_gcd);
-                        }
-                        if print_steps {
-                            print!("({}) * R{} → R{1}\n{}\n\n", sorta_gcd.inverse(), row, self);
-                        }
-                        return Ok(true);
-                    }
-                }
-            }
-            Ok(false)
-        }
-
-        pub fn try_simplify_matrix_unchecked(&mut self, print_steps: bool) {
-            println!("Attempting to simplify matrix.\n");
-            let mut did_simplification = false;
-            for row in 0..self.matrix.len() {
-                match self.try_simplify_unchecked(row, print_steps) {
-                    true => did_simplification = true,
-                    _ => {}
-                }
-            }
-            if did_simplification {
-                println!("\nWas able to simplify. New matrix:\n\n{}\n", self);
-            }
-            if !did_simplification {
-                println!("\nWas unable to simplify.\n");
-            }
-        }
-
-        pub fn try_simplify_unchecked(&mut self, row: usize, print_steps: bool) -> bool {
-            if self.matrix[row].len() > 1 {
-                let row_vec: &Vec<Frac> = &self.clone().matrix[row];
-                let (mut plus_minus_one_count, mut neg_count, mut non_zeros) = (0, 0, Vec::new());
-                for i in 0..row_vec.len() {
-                    let tst = row_vec[i];
-                    match tst.cmp_unchecked(&Frac::from(0)) {
-                        CmpRes::Eq => {},
-                        CmpRes::Lt => {
-                            neg_count += 1;
-                            match tst.eq(&Frac::from(-1)) {
-                                true => plus_minus_one_count += 1,
-                                false => non_zeros.push(tst)
-                            }
-                        }
-                        CmpRes::Gt => {
-                            match tst.eq(&Frac::from(1)) {
-                                true => plus_minus_one_count += 1,
-                                false => non_zeros.push(tst)
-                            }
-                        }
-                    }
-                }
-                if neg_count == self.matrix[row].len() {
-                    for b in 0..neg_count {
-                        self.matrix[row][b] = self.matrix[row][b].negative();
-                    }
-                    if print_steps {
-                        print!("(-1) * R{} → R{0}\n{}\n\n", row, self);
-                    }
-                }
-                if non_zeros.len() > 1 {
-                    if plus_minus_one_count == 0 {
-                        let first_frac = non_zeros[0];
-                        let second_frac = non_zeros[1];
-                        let mut num_gcd = get_gcd(first_frac.num as u32, second_frac.num as u32);
-                        let mut den_gcd = get_gcd(first_frac.den as u32, second_frac.den as u32);
-                        if num_gcd == 1 && den_gcd == 1 {
-                            return false;
-                        }
-                        if non_zeros.len() > 2 {
-                            for i in 2..non_zeros.len() {
-                                let next = non_zeros[i];
-                                num_gcd = get_gcd(num_gcd, next.num as u32);
-                                den_gcd = get_gcd(den_gcd, next.den as u32);
-                                if num_gcd == 1 && den_gcd == 1 {
-                                    return false;
-                                }
-                            }
-                        }
-                        let sorta_gcd = Frac::new(num_gcd as i32, den_gcd as i32);
-                        for b in 0..row_vec.len() {
-                            self.matrix[row][b] = self.matrix[row][b].div(sorta_gcd);
-                        }
-                        if print_steps {
-                            print!("({}) * R{} → R{1}\n{}\n\n", sorta_gcd.inverse(), row, self);
-                        }
-                        return true;
-                    }
-                }
-            }
-            false
-        }
-
         pub fn row_echelon_form(&mut self, print_steps: bool) {
             if print_steps {
                 println!("------- Starting REF -------\n");

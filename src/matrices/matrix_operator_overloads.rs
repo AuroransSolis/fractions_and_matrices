@@ -1,4 +1,5 @@
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Index, IndexMut, Range};
+use std::cmp::PartialEq;
 
 use matrices::matrix_base::{AugmentedMatrix, Matrix, Alignment};
 use matrices::matrix_transforms::Inverse;
@@ -10,8 +11,8 @@ macro_rules! matrix_index_methods {
 
             fn index<'a>(&'a self, index: (usize, usize)) -> &'a T {
                 match self.alignment {
-                    &Alignment::RowAligned => &self[index.0][index.1],
-                    &Alignment::ColumnAligned => &self[index.1][index.0]
+                    &Alignment::RowAligned => &self[index.0 * self.num_columns() + index.1],
+                    &Alignment::ColumnAligned => &self[index.0 * self.num_rows() + index.1]
                 }
             }
         }
@@ -20,7 +21,7 @@ macro_rules! matrix_index_methods {
             type Output = [T];
 
             fn index<'a>(&'a self, index: usize) -> &'a [T] {
-                self.matrix.as_slice()[(index * self.columns)..((index + 1) * self.columns)]
+                self.matrix[(index * self.columns)..((index + 1) * self.columns)]
             }
         }
 
@@ -56,6 +57,25 @@ macro_rules! matrix_index_methods {
 }
 
 matrix_index_methods!{AugmentedMatrix<T> Matrix<T>}
+
+impl<T: PartialEq> PartialEq for Matrix<T> {
+    fn eq(&self, other: &Matrix<T>) -> bool {
+        if self.num_columns() != other.num_columns() {
+            return false;
+        }
+        if self.num_rows() != other.num_rows() {
+            return false;
+        }
+        for i in 0..self.num_rows() {
+            for j in 0..self.num_columns() {
+                if self[(i, j)] != other[(i, j)] {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+}
 
 fn valid_operation_check(d1: (usize, usize), d2: (usize, usize), ) {
     if d1.0 == 0 {
