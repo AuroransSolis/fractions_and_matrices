@@ -171,8 +171,12 @@ impl fmt::Display for MatrixError {
     }
 }
 
-impl<T: Zero + One> Matrix<T> {
-    pub fn unit(dimension: usize) -> Matrix<T> {
+trait Unit {
+    fn unit(dimension: usize) -> Self;
+}
+
+impl<T: Zero + One> Unit for Matrix<T> {
+    fn unit(dimension: usize) -> Matrix<T> {
         let mut res = Matrix::splat(&T::zero(), (dimension, dimension), ROW_ALIGNED);
         for a in 0..rows {
             res[(a, a)] = T::one();
@@ -181,8 +185,8 @@ impl<T: Zero + One> Matrix<T> {
     }
 }
 
-impl<T: Zero + One> AugmentedMatrix<T> {
-    pub fn unit(dimension: usize) -> Matrix<T> {
+impl<T: Zero + One> Unit for AugmentedMatrix<T> {
+    fn unit(dimension: usize) -> Matrix<T> {
         let mut res = Matrix::splat(&T::zero(), (dimension, dimension + 1), ROW_ALIGNED);
         for a in 0..rows {
             res[(a, a)] = T::one();
