@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use num::{Zero, One};
+
 use std::fmt;
 
 use fractions::fractions::Fraction;
@@ -166,5 +168,25 @@ impl fmt::Display for MatrixError {
             &MatrixError::TransformError(ref e) => write!(f, "Row/Matrix operation error: {}", e),
             &MatrixError::FunctionError(ref e) => write!(f, "Function error: {}", e)
         }
+    }
+}
+
+impl<T: Zero + One> Matrix<T> {
+    pub fn unit(dimension: usize) -> Matrix<T> {
+        let mut res = Matrix::splat(&T::zero(), (dimension, dimension), ROW_ALIGNED);
+        for a in 0..rows {
+            res[(a, a)] = T::one();
+        }
+        res
+    }
+}
+
+impl<T: Zero + One> AugmentedMatrix<T> {
+    pub fn unit(dimension: usize) -> Matrix<T> {
+        let mut res = Matrix::splat(&T::zero(), (dimension, dimension + 1), ROW_ALIGNED);
+        for a in 0..rows {
+            res[(a, a)] = T::one();
+        }
+        res
     }
 }
