@@ -1,6 +1,6 @@
 use num::{One, Zero};
 
-use std::ops::{AddAssign, SubAssign, MulAssign, Div, DivAssign, Rem, Range};
+use std::ops::{AddAssign, SubAssign, MulAssign, Neg, Div, DivAssign, Rem, Range};
 use std::cmp::{Eq, PartialEq, PartialOrd};
 use std::fmt::{Debug, Display};
 
@@ -245,7 +245,7 @@ impl<T: PartialOrd + PartialEq + Zero + One> REF for Matrix<T>
                     } else if !amt1.is_zero() { // If it's not zero...
                         self.row_op_div(r, amt1); // ...divide by itself to make it one
                     } if self.is_zero() { // If it is zero...
-                        if self[(c, c)].is_zero() { // ...and the best tool is zlso zero, continue
+                        if self[(c, c)].is_zero() { // ...and the best tool is also zero, continue
                             continue;
                         }
                         self.row_op_add(r, c); // Otherwise, add said tool to row 'r'
@@ -384,8 +384,11 @@ trait RREF {
     fn is_RREF(&self) -> bool;
 }
 
-impl<T: PartialEz + Zero + One> RREF for Matrix<T> where Matrix<T>: REF, {
+impl<T: PartialEq + Zero + One> RREF for Matrix<T> where Matrix<T>: REF, {
     fn gauss_jordan(&mut self) {
+        if self.is_RREF() {
+            return;
+        }
         if !self.is_REF() {
             self.gaussian();
         }
@@ -424,8 +427,11 @@ trait RREFDisplay {
     fn gauss_jordan_display(&mut self) -> Option<Vec<String>>;
 }
 
-impl<T: PartialEz + Zero + One + Display> RREFDisplay for Matrix<T> where Matrix<T>: REF, {
+impl<T: Neg + PartialEq + PartialOrd + Zero + One + Display> RREFDisplay for Matrix<T> where Matrix<T>: REF, {
     fn gauss_jordan_display(&mut self) -> Option<Vec<String>> {
+        if self.is_RREF() {
+            return None;
+        }
         let mut steps = if !self.is_REF() {
             self.gaussian_display().unwrap()
         } else {
@@ -455,8 +461,11 @@ trait RREFDebug {
     fn gauss_jordan_debug(&mut self) -> Option<Vec<String>>;
 }
 
-impl<T: PartialEz + Zero + One + Debug> RREFDebug for Matrix<T> where Matrix<T>: REF, {
+impl<T: Neg + PartialEq + PartialOrd + Zero + One + Debug> RREFDebug for Matrix<T> where Matrix<T>: REF, {
     fn gauss_jordan_debug(&mut self) -> Option<Vec<String>> {
+        if self.is_RREF() {
+            return None;
+        }
         let mut steps = if !self.is_REF() {
             self.gaussian_display().unwrap()
         } else {
@@ -483,184 +492,130 @@ impl<T: PartialEz + Zero + One + Debug> RREFDebug for Matrix<T> where Matrix<T>:
 }
 
 pub(crate) trait Inverse {
-    fn inverse(&self, print_steps: bool);
+    fn inverse(&self) -> Self;
+    fn try_inverse(&self) -> Result<Self, MatrixError>;
+}
+
+impl<T: PartialOrd + PartialEq + Zero + One> Inverse for Matrix<T>
+    where Matrix<T>: RowOpAdd + RowOpSub + RowOpMul + RowOpDiv, {
+    fn inverse(&self) -> Self {
+        assert!(self.is_unit_dimension());
+        let mut s = self.clone();
+        let mut unit = Matrix::unit(self.rows);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let scc = s[(c, c)];
+                    s.row_op_mul(c, (amt1 / scc));
+                    unit.row_opp_mul(c, (amt1 / scc));
+                    s.row_op_sub(r, c);
+                    unit.row_op_sub(r, c);
+                    s.row_op_div(c, (amt1 / scc));
+                    unit.row_op_div(c, (amt1 / scc));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        s.row_op_div(r, amt1);
+                        unit.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        unit.row_op_add(r, c);
+                        if !s[(r, c)].is_one() {
+                            unit.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                s.row_op_div(c, src);
+            }
+        }
+        unit
+    }
+
+    fn try_inverse(&self) -> Result<Self, MatrixError> {
+        if !self.is_unit_dimension() {
+            return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
+            columns - unable to make inverse.".to_string()));
+        }
+        let mut s = self.clone();
+        let mut unit = Matrix::unit(self.rows);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let scc = s[(c, c)];
+                    s.row_op_mul(c, (amt1 / scc));
+                    unit.row_opp_mul(c, (amt1 / scc));
+                    s.row_op_sub(r, c);
+                    unit.row_op_sub(r, c);
+                    s.row_op_div(c, (amt1 / scc));
+                    unit.row_op_div(c, (amt1 / scc));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        s.row_op_div(r, amt1);
+                        unit.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        unit.row_op_add(r, c);
+                        if !s[(r, c)].is_one() {
+                            unit.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        if s.is_unit() {
+            Ok(unit)
+        } else {
+            Err(MatrixError::FunctionError("Was unable to make an inverse - unable to put original \
+            matrix in RREF form.".to_string()))
+        }
+    }
+}
+
+pub(crate) trait InverseDisplay {
+    fn inverse_display(&self) -> Option<Vec<String>>;
+}
+
+pub(crate) trait InverseDebug {
+    fn inverse_debug(&self) -> Option<Vec<String>>;
 }
 
 pub(crate) trait InverseAssign {
     fn inverse_assign(&mut self, print_steps: bool);
-}
-
-pub mod transforms {
-    use std::cmp;
-    use fracs::*;
-    use matrix_base::FracMatrix;
-    use matrix_base::format::*;
-    use matrix_base::MatrixError;
-
-    impl FracMatrix {
-        // The inverse can be achieved by taking a matrix and transforming it into a unit matrix (RREF
-        // form) and applying the transformations to a unit matrix. The resulting non-unit matrix is the
-        // inverse of the original. This function combines the REF and RREF functions above and applies
-        // each transformation to a unit matrix.
-        pub fn invert(&mut self, print_steps: bool) -> Result<(), MatrixError> {
-            if self.dimension.0 != self.dimension.1 {
-                return Err(MatrixError::OpError(
-                    "Matrix must be square in dimension to calculate the inverse.".to_string()
-                ));
-            }
-            let mut unit = match FracMatrix::from_dimension((self.dimension.0, self.dimension.1),
-                                                            false) {
-                Ok(matr) => matr,
-                Err(e) => return Err(e),
-            };
-            for a in 0..unit.dimension.0 {
-                unit.matrix[a][a] = Frac::from(1);
-            }
-            if print_steps {
-                print!("Setup at start of inverse calculation:\n{}\n\n", add_mat_to_string(self.to_string(), &unit, Separator::Space));
-            }
-            let max = cmp::min(self.dimension.0, self.dimension.1);
-            for a in 0..max {
-                for b in 0..a + 1 { // Keep tested values "below" or on the diagonal line
-                    let amt1 = self.matrix[a][b].clone(); // Current value
-                    if b < a { // "Under" the diagonal line
-                        if amt1.num == 0 {
-                            continue;
-                        }
-                        let sign;
-                        let mut neg = false;
-                        match amt1.num > 0 {
-                            true => {
-                                self.row_ops_mul(b, amt1);
-                                unit.row_ops_mul(b, amt1);
-                                self.row_ops_sub(a, b);
-                                unit.row_ops_sub(a, b);
-                                self.row_ops_div(b, amt1);
-                                unit.row_ops_div(b, amt1);
-                                sign = String::from("-");
-                            },
-                            false => {
-                                let mut tmpamt = amt1;
-                                tmpamt.num *= -1;
-                                self.row_ops_mul(b, tmpamt);
-                                unit.row_ops_mul(b, tmpamt);
-                                self.row_ops_add(a, b);
-                                unit.row_ops_add(a, b);
-                                self.row_ops_div(b, tmpamt);
-                                unit.row_ops_div(b, tmpamt);
-                                sign = String::from("+");
-                                neg = true;
-                            }
-                        }
-                        if print_steps {
-                            print!("R{} {} ({}) * R{} → R{0}\n{}\n\n", a + 1, sign, {
-                                if neg {
-                                    amt1.negative().try_simplify()
-                                } else {
-                                    amt1
-                                }
-                            }, b + 1, add_mat_to_string(self.to_string(), &unit, Separator::Space));
-                        }
-                        continue;
-                    }
-                    if b == a { // On the diagonal line
-                        if amt1.num == 0 {
-                            let mut other: i32 = -1;
-                            for i in (b..max).filter(|&i| i != a) {
-                                if self.matrix[i][b].clone().num != 0 {
-                                    other = i as i32;
-                                    break;
-                                }
-                            }
-                            if other == -1 {
-                                continue;
-                            }
-                            let other = other as usize;
-                            let mut add = true;
-                            let amt2 = self.matrix[other][b].clone();
-                            match amt2.num > 0 {
-                                true => {
-                                    self.row_ops_add(b, other);
-                                    unit.row_ops_add(b, other);
-                                }
-                                false => {
-                                    add = false;
-                                    self.row_ops_sub(b, other);
-                                    unit.row_ops_sub(b, other);
-                                }
-                            }
-                            let sign = match add {
-                                true => String::from("+"),
-                                false => String::from("-")
-                            };
-                            if print_steps {
-                                print!("R{} {} R{} → R{0}\n{}\n\n", a + 1, sign, other + 1,
-                                       add_mat_to_string(self.to_string(), &unit, Separator::Space));
-                            }
-                            let amt1 = self.matrix[a][b].clone();
-                            if amt1.num != 1 {
-                                self.row_ops_div(a, amt1);
-                                if print_steps {
-                                    let foo = amt1.clone().inverse();
-                                    print!("({}) * R{} → R{1}\n{}\n\n", foo, a + 1,
-                                           add_mat_to_string(self.to_string(), &unit, Separator::Space));
-                                }
-                            }
-                            continue;
-                        }
-                        self.row_ops_div(a, amt1); // Divide by self
-                        unit.row_ops_div(a, amt1);
-                        if print_steps {
-                            let amt1 = amt1.inverse();
-                            print!("({}) * R{} → R{1}\n{}\n\n", amt1, a + 1,
-                                   add_mat_to_string(self.to_string(), &unit, Separator::Space));
-                        }
-                        continue;
-                    }
-                }
-            }
-            for a in (0..max - 1).rev() {
-                for b in (a + 1..max).rev() {
-                    let amt = self.matrix[a][b].clone();
-                    if !amt.eq(&Frac::from(0)) {
-                        self.row_ops_mul(b, amt);
-                        unit.row_ops_mul(b, amt);
-                        self.row_ops_sub(a, b);
-                        unit.row_ops_sub(a, b);
-                        self.row_ops_div(b, amt);
-                        unit.row_ops_div(b, amt);
-                        if print_steps {
-                            print!("R{} - ({}) * R{} → R{0}\n{}\n\n", a + 1, amt, b + 1,
-                                   add_mat_to_string(self.to_string(), &unit, Separator::Space))
-                        }
-                    }
-                }
-            }
-            for a in 0..max { // Check to see if the original matrix is now a unit matrix
-                for b in 0..max {
-                    if a != b && !self.matrix[b][a].clone().eq(&Frac::from(0)) {
-                        return Err(MatrixError::OpError(
-                            "Unable to convert matrix into unit matrix to make the inverse."
-                                .to_string()
-                        ));
-                    }
-                    if a == b && !self.matrix[b][a].clone().eq(&Frac::from(1)) {
-                        return Err(MatrixError::OpError(
-                            "Unable to convert matrix into unit matrix to make the inverse."
-                                .to_string()
-                        ));
-                    }
-                }
-            }
-            Ok(())
-        }
-
-        pub fn inverse(&self, print_steps: bool) -> Result<FracMatrix, MatrixError> {
-            let mut tmp = self.clone();
-            match tmp.invert(print_steps) {
-                Err(e) => Err(e),
-                Ok(_) => Ok(tmp)
-            }
-        }
-    }
 }
