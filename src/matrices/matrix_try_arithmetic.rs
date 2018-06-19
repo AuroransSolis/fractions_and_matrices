@@ -115,10 +115,7 @@ impl<T, U> TryAddMatrices<Matrix<U>> for Matrix<T>
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_add(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
-        match try_add_sub_valid_operation_check(self.get_dimension(), other.get_dimension()) {
-            Ok(aaa) => return Ok(aaa),
-            Err(AAA) => return Err(AAA)
-        }
+        try_add_sub_valid_operation_check(self.get_dimension(), other.get_dimension())?;
         if self.alignment == other.alignment {
             for i in 0..self.rows {
                 for j in 0..self.columns {
@@ -146,10 +143,7 @@ impl<T, U> TrySubMatrices<Matrix<U>> for Matrix<T>
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_sub(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
-        match try_add_sub_valid_operation_check(self.get_dimension(), other.get_dimension()) {
-            Ok(aaa) => return Ok(aaa),
-            Err(AAA) => return Err(AAA)
-        }
+        try_add_sub_valid_operation_check(self.get_dimension(), other.get_dimension())?;
         if self.alignment == other.alignment {
             for i in 0..self.rows {
                 for j in 0..self.columns {
@@ -189,10 +183,7 @@ impl<T, U> TryMulMatrices<Matrix<U>> for Matrix<T>
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_mul(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
-        match try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension()) {
-            Ok(aaa) => return Ok(aaa),
-            Err(AAA) => return Err(AAA)
-        }
+        try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension())?;
         if self.alignment != other.alignment {
             let mut matr = Matrix::splat(&T::from(0), (self.rows, other.rows), false, ROW_ALIGNED);
             for a in 0..self.rows {
@@ -259,10 +250,7 @@ impl<T, U> TryDivMatrices<Matrix<U>> for Matrix<T>
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_div(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
-        match try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension()) {
-            Ok(aaa) => return Ok(aaa),
-            Err(AAA) => return Err(AAA)
-        }
+        try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension())?;
         if let Ok(inv) = other.try_inverse() {
             if self.alignment != inv.alignment {
                 let mut matr = Matrix::splat(&T::from(0), (self.rows, other.rows), false,
@@ -335,13 +323,13 @@ impl<'a, 'b, T, U> TryDivMatrices<&'b Matrix<U>> for &'a Matrix<T>
 }
 
 macro_rules! matrix_forward_ref_try_op_assign {
-    ($imp:ident, $method:ident, $t:ty)  => {
-        impl<'a, T, U> $imp<&'a Matrix<U>> for Matrix<T>
+    ($matrix_imp:ident, $req_imp:ident, $method:ident, $t:ty)  => {
+        impl<'a, T, U> $matrix_imp<&'a Matrix<U>> for Matrix<T>
             where
-                T: $imp + Clone,
+                T: $req_imp + Clone,
                 U: Into<T> + Clone, {
             fn $method(&mut self, rhs: &'a Matrix<U>) {
-                $imp::method(self, rhs.clone());
+                $matrix_imp::method(self, rhs.clone());
             }
         }
     }
@@ -368,10 +356,7 @@ impl<T, U> TryAddAssignMatrices<Matrix<U>> for Matrix<T>
         T: AddAssign + Clone,
         U: Into<T> + Clone, {
     fn try_add_assign(&mut self, other: Matrix<U>) -> Result<(), MatrixError> {
-        match try_add_sub_valid_operation_check(self.get_dimension(), other.get_dimension()) {
-            Ok(aaa) => return Ok(aaa),
-            Err(AAA) => return Err(AAA)
-        }
+        try_add_sub_valid_operation_check(self.get_dimension(), other.get_dimension())?;
         if self.alignment == other.alignment {
             for i in 0..self.rows {
                 for j in 0..self.columns {
@@ -390,17 +375,14 @@ impl<T, U> TryAddAssignMatrices<Matrix<U>> for Matrix<T>
     }
 }
 
-matrix_forward_ref_try_op_assign!{AddAssign, add_assign, Matrix<T>}
+matrix_forward_ref_try_op_assign!{TryAddAssignMatrices, AddAssign, add_assign, Matrix<T>}
 
 impl<T, U> TrySubAssignMatrices<Matrix<U>> for Matrix<T>
     where
         T: SubAssign + From<U>,
         U: SubAssign<T> + Clone + SubAssign<U>, {
     fn try_sub_assign(&mut self, other: Matrix<U>) -> Result<(), MatrixError> {
-        match try_add_sub_valid_operation_check(self.get_dimension(), other.get_dimension()) {
-            Ok(aaa) => return Ok(aaa),
-            Err(AAA) => return Err(AAA)
-        }
+        try_add_sub_valid_operation_check(self.get_dimension(), other.get_dimension())?;
         if self.alignemnt == other.alignment {
             for i in 0..self.rows {
                 for j in 0..self.columns {
@@ -419,15 +401,12 @@ impl<T, U> TrySubAssignMatrices<Matrix<U>> for Matrix<T>
     }
 }
 
-matrix_forward_ref_try_op_assign!{SubAssign, sub_assign, Matrix<T>}
+matrix_forward_ref_try_op_assign!{TrySubAssignMatrices, SubAssign, sub_assign, Matrix<T>}
 
 impl<T, U> TryMulAssignMatrices<Matrix<U>> for Matrix<T>
     where Matrix<T>: TryMulMatrices<Matrix<U>> {
     fn try_mul_assign(&mut self, other: Matrix<U>) -> Result<(), MatrixError> {
-        match try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension()) {
-            Ok(aaa) => return Ok(aaa),
-            Err(AAA) => return Err(AAA)
-        }
+        try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension())?;
         match self.try_mul(other) {
             Ok(res) => {
                 *self = res;
@@ -441,10 +420,7 @@ impl<T, U> TryMulAssignMatrices<Matrix<U>> for Matrix<T>
 impl<'a, T, U> TryMulAssignMatrices<&'a Matrix<U>> for Matrix<T>
     where Matrix<T>: TryMulMatrices<Matrix<U>> {
     fn try_mul_assign(&mut self, other: Matrix<U>) -> Result<(), MatrixError> {
-        match try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension()) {
-            Ok(aaa) => return Ok(aaa),
-            Err(AAA) => return Err(AAA)
-        }
+        try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension())?;
         match self.try_mul(other) {
             Ok(res) => {
                 *self = res;
