@@ -28,12 +28,11 @@ trait TryDivMatrices<Other = Self> {
 }
 
 macro_rules! matrix_forward_ref_try_binop {
-    ($imp:ident, $method:ident, $t:ty) => {
-        impl <'a, T, U> $imp<&'a Matrix<U>> for Matrix<T>
+    ($matrix_imp:ident, $req_imp:ident, $method:ident, $t:ty) => {
+        impl <'a, T, U> $matrix_imp<&'a Matrix<U>> for Matrix<T>
             where
-                T: $imp + Clone,
-                U: Into<T> + Clone,
-                <T as $imp>::Output: Into<T>, {
+                T: $req_imp + Clone,
+                U: Into<T> + Clone, {
             type Output = <$t as $imp>::Output;
 
             fn $method(self, other: &'a Matrix<U>) -> $t {
@@ -41,11 +40,10 @@ macro_rules! matrix_forward_ref_try_binop {
             }
         }
 
-        impl <'a, T, U> $imp<Matrix<U>> for &'a Matrix<T>
+        impl <'a, T, U> $matrix_imp<Matrix<U>> for &'a Matrix<T>
             where
-                T: $imp + Clone,
-                U: Into<T> + Clone,
-                <T as $imp>::Output: Into<T>, {
+                T: $req_imp + Clone,
+                U: Into<T> + Clone, {
             type Output = <$t as $imp>::Output;
 
             fn $method(self, other: Matrix<U>) -> $t {
@@ -53,11 +51,10 @@ macro_rules! matrix_forward_ref_try_binop {
             }
         }
 
-        impl <'a, 'b, T, U> $imp<&'b Matrix<U>> for &'a Matrix<T>
+        impl <'a, 'b, T, U> $matrix_imp<&'b Matrix<U>> for &'a Matrix<T>
             where
-                T: $imp + Clone,
-                U: Into<T> + Clone,
-                <T as $imp>::Output: Into<T>, {
+                T: $req_imp + Clone,
+                U: Into<T> + Clone, {
             type Output = <$t as $imp>::Output;
 
             fn $method(self, other: &'b Matrix<U>) -> $t {
@@ -113,7 +110,7 @@ fn try_add_sub_valid_operation_check(d1: (usize, usize), d2: (usize, usize))
 
 impl<T, U> TryAddMatrices<Matrix<U>> for Matrix<T>
     where
-        T: AddAssign<T> + Clone,
+        T: AddAssign<U> + Clone,
         U: Into<T> + Clone, {
     type Output = Result<Matrix<T>, MatrixError>;
 
@@ -140,11 +137,11 @@ impl<T, U> TryAddMatrices<Matrix<U>> for Matrix<T>
     }
 }
 
-matrix_forward_ref_try_binop!{TryAddMatrices, try_add, Matrix<T>}
+matrix_forward_ref_try_binop!{TryAddMatrices, AddAssign, try_add, Matrix<T>}
 
 impl<T, U> TrySubMatrices<Matrix<U>> for Matrix<T>
     where
-        T: SubAssign<T> + Clone,
+        T: SubAssign<U> + Clone,
         U: Into<T> + Clone, {
     type Output = Result<Matrix<T>, MatrixError>;
 
@@ -170,6 +167,8 @@ impl<T, U> TrySubMatrices<Matrix<U>> for Matrix<T>
         }
     }
 }
+
+matrix_forward_ref_try_binop!{TrySubMatrices, SubAssign, try_sub, Matrix<T>}
 
 fn try_mul_div_valid_operation_check(d1: (usize, usize), d2: (usize, usize))
     -> Result<(), MatrixError> {
