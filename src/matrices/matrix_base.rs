@@ -173,6 +173,8 @@ impl fmt::Display for MatrixError {
 
 trait Unit {
     fn unit(dimension: usize) -> Self;
+    fn is_unit_dimension(&self) -> bool;
+    fn is_unit(&self) -> bool;
 }
 
 impl<T: Zero + One> Unit for Matrix<T> {
@@ -183,6 +185,30 @@ impl<T: Zero + One> Unit for Matrix<T> {
         }
         res
     }
+
+    fn is_unit_dimension(&self) -> bool {
+        self.rows == self.columns
+    }
+
+    fn is_unit(&self) -> bool {
+        if !self.is_unit_dimension() {
+            return false;
+        }
+        for r in 0..self.rows {
+            for c in 0..self.columns {
+                if r != c {
+                    if !self[(r, c)].is_zero() {
+                        return false;
+                    }
+                } else {
+                    if !self[(r, c)].is_one() {
+                        return false;
+                    }
+                }
+            }
+        }
+        true
+    }
 }
 
 impl<T: Zero + One> Unit for AugmentedMatrix<T> {
@@ -192,5 +218,29 @@ impl<T: Zero + One> Unit for AugmentedMatrix<T> {
             res[(a, a)] = T::one();
         }
         res
+    }
+
+    fn is_unit_dimension(&self) -> bool {
+        self.rows + 1 == self.columns
+    }
+
+    fn is_unit(&self) -> bool {
+        if !self.is_unit_dimension() {
+            return false;
+        }
+        for r in 0..self.rows {
+            for c in 0..self.columns - 1 {
+                if r != c {
+                    if !self[(r, c)].is_zero() {
+                        return false;
+                    }
+                } else {
+                    if !self[(r, c)].is_one() {
+                        return false;
+                    }
+                }
+            }
+        }
+        true
     }
 }
