@@ -171,7 +171,7 @@ impl fmt::Display for MatrixError {
     }
 }
 
-trait Unit {
+pub(crate) trait Unit {
     fn unit(dimension: usize) -> Self;
     fn is_unit_dimension(&self) -> bool;
     fn is_unit(&self) -> bool;
