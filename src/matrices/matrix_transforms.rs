@@ -6,19 +6,19 @@ use std::fmt::{Debug, Display};
 
 use matrices::matrix_base::*;
 
-trait RowOpAdd {
+pub trait RowOpAdd {
     fn row_op_add(&mut self, target: usize, tool: usize);
 }
 
-trait RowOpSub {
+pub trait RowOpSub {
     fn row_op_sub(&mut self, target: usize, tool: usize);
 }
 
-trait RowOpMul<Scalar = usize> {
+pub trait RowOpMul<Scalar = usize> {
     fn row_op_mul(&mut self, target: usize, tool: Scalar);
 }
 
-trait RowOpDiv<scalar = usize> {
+pub trait RowOpDiv<scalar = usize> {
     fn row_op_div(&mut self, target: usize, tool: scalar);
 }
 
@@ -33,19 +33,19 @@ fn gcd<T: Gcd>(a: T, b: T) {
     }
 }
 
-trait Simplify {
+pub trait Simplify {
     fn simplify_row(&mut self, row: usize);
     fn simplify_rows(&mut self, rows: Range<usize>);
     fn simplify_matrix(&mut self);
 }
 
-trait SimplifyGetStepsDisplay {
+pub trait SimplifyGetStepsDisplay {
     fn simplify_row_get_steps_ds(&mut self, row: usize) -> Option<String>;
     fn simplify_rows_get_steps_ds(&mut self, row: usize) -> Option<Vec<Option<String>>>;
     fn simplify_matrix_get_steps_ds(&mut self) -> Option<Vec<Option<String>>>;
 }
 
-trait SimplifyGetStepsDebug {
+pub trait SimplifyGetStepsDebug {
     fn simplify_row_get_steps_db(&mut self, row: usize) -> Option<String>;
     fn simplify_rows_get_steps_db(&mut self, row: usize) -> Option<String>;
     fn simplify_matrix_get_steps_db(&mut self) -> Option<String>;
@@ -54,29 +54,29 @@ trait SimplifyGetStepsDebug {
 trait SimplifyTraits: Div + DivAssign + Gcd + Zero + One + PartialEq {}
 impl<T: Div + DivAssign + Gcd + Zero + One + PartialEq> SimplifyTraits for T {}
 
-trait REF {
+pub trait REF {
     fn gaussian(&mut self);
     fn is_REF(&self) -> bool;
 }
 
-trait REFDisplay {
+pub trait REFDisplay {
     fn gaussian_display(&mut self) -> Option<Vec<String>>;
 }
 
-trait REFDebug {
+pub trait REFDebug {
     fn gaussian_debug(&mut self);
 }
 
-trait RREF {
+pub trait RREF {
     fn gauss_jordan(&mut self);
     fn is_RREF(&self) -> bool;
 }
 
-trait RREFDisplay {
+pub trait RREFDisplay {
     fn gauss_jordan_display(&mut self) -> Option<Vec<String>>;
 }
 
-trait RREFDebug {
+pub trait RREFDebug {
     fn gauss_jordan_debug(&mut self) -> Option<Vec<String>>;
 }
 
@@ -573,10 +573,14 @@ macro_rules! transforms_impl {
                             continue;
                         }
                         s.row_op_mul(c, src);
+                        unit.row_op_mul(c, src);
                         s.row_op_sub(r, c);
+                        unit.row_op_sub(r, c);
                         s.row_op_div(c, src);
+                        unit.row_op_div(c, src);
                     }
                 }
+                assert!(s.is_unit());
                 unit
             }
 
@@ -636,8 +640,11 @@ macro_rules! transforms_impl {
                             continue;
                         }
                         s.row_op_mul(c, src);
+                        unit.row_op_mul(c, src);
                         s.row_op_sub(r, c);
+                        unit.row_op_sub(r, c);
                         s.row_op_div(c, src);
+                        unit.row_op_div(c, src);
                     }
                 }
                 if s.is_unit() {
@@ -716,6 +723,7 @@ macro_rules! transforms_impl {
                         steps.push(format!("R{} - ({}) * R{} → R{0}", r, src, c));
                     }
                 }
+                assert!(s.is_unit());
                 (unit, Some(steps))
             }
 
@@ -864,6 +872,7 @@ macro_rules! transforms_impl {
                         steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, src, c));
                     }
                 }
+                assert!(s.is_unit());
                 (unit, Some(steps))
             }
 
@@ -1003,6 +1012,7 @@ macro_rules! transforms_impl {
                         self.row_op_div(c, src);
                     }
                 }
+                assert!(s.is_unit());
             }
 
             fn try_inverse_assign(&mut self) -> Result<(), MatrixError> {
@@ -1144,6 +1154,7 @@ macro_rules! transforms_impl {
                         steps.push(format!("R{} - ({}) * R{} → R{0}", r, src, c));
                     }
                 }
+                assert!(s.is_unit());
                 Some(steps)
             }
 
@@ -1292,6 +1303,7 @@ macro_rules! transforms_impl {
                         steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, src, c));
                     }
                 }
+                assert!(s.is_unit());
                 Some(steps)
             }
 
