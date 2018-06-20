@@ -63,12 +63,12 @@ macro_rules! matrix_base_impls {
             }
 
             fn in_place_transpose(&mut self) {
-                let mut tmp = vec![*self[(0, 0)]; self.dimension.0 * self.dimension.1];
+                let mut tmp = vec![*self[(0, 0)]; self.rows * self.columns];
                 std::mem::swap(&mut self.matrix, &mut tmp);
                 let mut cur_pos = 0;
                 for a in 0..self.dimension.1 {
                     for b in 0..self.dimension.0 {
-                        std::mem::swap(&mut self.matrix[cur_pos], &mut tmp[a + b * self.dimension.1]);
+                        std::mem::swap(&mut self.matrix[cur_pos], &mut tmp[a + b * self.num_columns()]);
                         cur_pos += 1;
                     }
                 }
@@ -79,7 +79,7 @@ macro_rules! matrix_base_impls {
                     Alignment::RowAligned => return,
                     Alignment::ColumnAligned => {
                         self.in_place_transpose();
-                        std::mem::swap(&mut self.dimension.0, &mut self.dimension.1);
+                        std::mem::swap(&mut self.rows, &mut self.columns);
                         self.alignment = Alignment::ColumnAligned;
                     }
                 }
@@ -89,7 +89,7 @@ macro_rules! matrix_base_impls {
                 match self.alignment {
                     Alignment::RowAligned => {
                         self.in_place_transpose();
-                        std::mem::swap(&mut self.dimension.0, &mut self.dimension.1);
+                        std::mem::swap(&mut self.rows, &mut self.columns);
                         self.alignment = Alignment::RowAligned;
                     },
                     Alignment::ColumnAligned => return
