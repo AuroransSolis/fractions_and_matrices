@@ -235,10 +235,10 @@ impl<T: PartialOrd + PartialEq + Zero + One> REF for Matrix<T>
                     if self[(c, c)].is_zero() {
                         continue;
                     }
-                    let selfcc = self[(c, c)];
-                    self.row_op_mul(c, (amt1 / selfcc));
+                    let amt2 = amt1 / self[(c, c)];
+                    self.row_op_mul(c, amt2);
                     self.row_op_sub(r, c);
-                    self.row_op_div(c, (amt1 / selfcc));
+                    self.row_op_div(c, amt2);
                 } else if c == r { // If the value's on the major diagonal
                     if amt1.is_one() { // Continue if it's already what it should be
                         continue;
@@ -295,11 +295,11 @@ impl<T: Div + PartialOrd + PartialEq + Zero + One + Display> REFDisplay for Matr
                     if self[(c, c)].is_zero() {
                         continue;
                     }
-                    let selfcc = self[(c, c)];
-                    self.row_op_mul(c, (amt1 / selfcc));
+                    let amt2 = amt1 / self[(c, c)];
+                    self.row_op_mul(c, amt2);
                     self.row_op_sub(r, c);
-                    self.row_op_div(c, (amt1 / selfcc));
-                    steps.push(format!("R{} - ({}) * R{} → R{0}", r, amt1 / selfcc, c));
+                    self.row_op_div(c, amt2);
+                    steps.push(format!("R{} - ({}) * R{} → R{0}", r, amt2, c));
                 } else if c == r {
                     if amt1.is_one() {
                         continue;
@@ -347,12 +347,12 @@ impl<T: Div + PartialOrd + PartialEq + Zero + One + Debug> REFDebug for Matrix<T
                     if self[(c, c)].is_zero() {
                         continue;
                     }
-                    let selfcc = self[(c, c)];
-                    self.row_op_mul(c, (amt1 / selfcc));
+                    let amt2 = amt1 / self[(c, c)];
+                    self.row_op_mul(c, amt2);
                     self.row_op_sub(r, c);
-                    self.row_op_div(c, (amt1 / selfcc));
+                    self.row_op_div(c, amt2);
                     steps.push(format!("Step {}: R{} - ({:?}) * R{} → R{0}", steps.len(), r,
-                                       amt1 / selfcc, c));
+                                       amt2, c));
                 } else if c == r {
                     if amt1.is_one() {
                         continue;
@@ -496,7 +496,7 @@ pub(crate) trait Inverse {
     fn try_inverse(&self) -> Result<Self, MatrixError>;
 }
 
-impl<T: PartialOrd + PartialEq + Zero + One> Inverse for Matrix<T>
+impl<T: PartialOrd + PartialEq + Unit> Inverse for Matrix<T>
     where Matrix<T>: RowOpAdd + RowOpSub + RowOpMul + RowOpDiv, {
     fn inverse(&self) -> Self {
         assert!(self.is_unit_dimension());
@@ -512,13 +512,13 @@ impl<T: PartialOrd + PartialEq + Zero + One> Inverse for Matrix<T>
                     if s[(c, c)].is_zero() {
                         continue;
                     }
-                    let scc = s[(c, c)];
-                    s.row_op_mul(c, (amt1 / scc));
-                    unit.row_opp_mul(c, (amt1 / scc));
+                    let amt2 = amt1 / s[(c, c)];
+                    s.row_op_mul(c, amt2);
+                    unit.row_opp_mul(c, amt2);
                     s.row_op_sub(r, c);
                     unit.row_op_sub(r, c);
-                    s.row_op_div(c, (amt1 / scc));
-                    unit.row_op_div(c, (amt1 / scc));
+                    s.row_op_div(c, amt2);
+                    unit.row_op_div(c, amt2);
                 } else if c == r {
                     if amt1.is_one() {
                         continue;
@@ -571,13 +571,13 @@ impl<T: PartialOrd + PartialEq + Zero + One> Inverse for Matrix<T>
                     if s[(c, c)].is_zero() {
                         continue;
                     }
-                    let scc = s[(c, c)];
-                    s.row_op_mul(c, (amt1 / scc));
-                    unit.row_opp_mul(c, (amt1 / scc));
+                    let amt2 = amt1 / s[(c, c)];
+                    s.row_op_mul(c, amt2);
+                    unit.row_opp_mul(c, amt2);
                     s.row_op_sub(r, c);
                     unit.row_op_sub(r, c);
-                    s.row_op_div(c, (amt1 / scc));
-                    unit.row_op_div(c, (amt1 / scc));
+                    s.row_op_div(c, amt2);
+                    unit.row_op_div(c, amt2);
                 } else if c == r {
                     if amt1.is_one() {
                         continue;
@@ -599,23 +599,773 @@ impl<T: PartialOrd + PartialEq + Zero + One> Inverse for Matrix<T>
                 }
             }
         }
+        if !self.is_REF() {
+            return Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
+            original matrix in REF form.".to_string));
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                s.row_op_div(c, src);
+            }
+        }
         if s.is_unit() {
             Ok(unit)
         } else {
-            Err(MatrixError::FunctionError("Was unable to make an inverse - unable to put original \
+            Err(MatrixError::TransformError("Was unable to make an inverse - unable to put original \
             matrix in RREF form.".to_string()))
         }
     }
 }
 
 pub(crate) trait InverseDisplay {
-    fn inverse_display(&self) -> Option<Vec<String>>;
+    fn inverse_display(&self) -> (Self, Option<Vec<String>>);
+    fn try_inverse_display(&self) -> Result<(Self, Option<Vec<String>>), MatrixError>;
+}
+
+impl<T: PartialOrd + PartialEq + Unit + Display> InverseDisplay for Matrix<T>
+    where Matrix<T>: RowOpAdd + RowOpSub + RowOpMul + RowOpDiv, {
+    fn inverse_display(&self) -> (Self, Option<Vec<String>>) {
+        assert!(self.is_unit_dimension());
+        if self.is_unit() {
+            return (self, None);
+        }
+        let mut steps = Vec::new();
+        let mut s = self.clone();
+        let mut unit = Matrix::unit(self.rows);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let amt2 = amt1 / s[(c, c)];
+                    s.row_op_mul(c, amt2);
+                    unit.row_opp_mul(c, amt2);
+                    s.row_op_sub(r, c);
+                    unit.row_op_sub(r, c);
+                    s.row_op_div(c, amt2);
+                    unit.row_op_div(c, amt2);
+                    steps.push(format!("R{} - ({}) * R{} → R{0}", r, amt2, c));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        steps.push(format!("R{} / ({}) → R{0}", r, amt1));
+                        s.row_op_div(r, amt1);
+                        unit.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        unit.row_op_add(r, c);
+                        steps.push(format!("R{} + R{} → R{0}", r, c));
+                        if !s[(r, c)].is_one() {
+                            steps.push(format!("R{} / ({}) → R{0}", r, s[(r, c)]));
+                            unit.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                unit.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                unit.row_op_sub(r, c);
+                s.row_op_div(c, src);
+                unit.row_op_div(c, src);
+                steps.push(format!("R{} - ({}) * R{} → R{0}", r, src, c));
+            }
+        }
+        (unit, Some(steps))
+    }
+
+    fn try_inverse_display(&self) -> Result<(Self, Option<Vec<String>>), MatrixError> {
+        if !self.is_unit_dimension() {
+            return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
+            columns - unable to make inverse.".to_string()));
+        }
+        let mut steps = Vec::new();
+        let mut s = self.clone();
+        let mut unit = Matrix::unit(self.rows);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let amt2 = amt1 / s[(c, c)];
+                    s.row_op_mul(c, amt2);
+                    unit.row_opp_mul(c, amt2);
+                    s.row_op_sub(r, c);
+                    unit.row_op_sub(r, c);
+                    s.row_op_div(c, amt2);
+                    unit.row_op_div(c, amt2);
+                    steps.push(format!("R{} - ({}) * R{} → R{0}", r, amt2, c));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        steps.push(format!("R{} / ({}) → R{0}", r, amt1));
+                        s.row_op_div(r, amt1);
+                        unit.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        unit.row_op_add(r, c);
+                        steps.push(format!("R{} + R{} → R{0}", r, c));
+                        if !s[(r, c)].is_one() {
+                            steps.push(format!("R{} / ({}) → R{0}", r, s[(r, c)]));
+                            unit.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        if !self.is_REF() {
+            return Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
+            original matrix in REF form.".to_string));
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                unit.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                unit.row_op_sub(r, c);
+                s.row_op_div(c, src);
+                unit.row_op_div(c, src);
+                steps.push(format!("R{} - ({}) * R{} → R{0}", r, src, c));
+            }
+        }
+        if s.is_unit() {
+            Ok((unit, steps))
+        } else {
+            Err(MatrixError::TransformError("Was unable to make an inverse - unable to put original \
+            matrix in RREF form.".to_string()))
+        }
+    }
 }
 
 pub(crate) trait InverseDebug {
-    fn inverse_debug(&self) -> Option<Vec<String>>;
+    fn inverse_debug(&self) -> (Self, Option<Vec<String>>);
+    fn try_inverse_debug(&self) -> Result<(Self, Option<Vec<String>>), MatrixError>;
+}
+
+impl<T: PartialOrd + PartialEq + Unit + Debug> InverseDebug for Matrix<T>
+    where Matrix<T>: RowOpAdd + RowOpSub + RowOpMul + RowOpDiv, {
+    fn inverse_debug(&self) -> (Self, Option<Vec<String>>) {
+        assert!(self.is_unit_dimension());
+        if self.is_unit() {
+            return (self, None);
+        }
+        let mut steps = Vec::new();
+        let mut s = self.clone();
+        let mut unit = Matrix::unit(self.rows);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let amt2 = amt1 / s[(c, c)];
+                    s.row_op_mul(c, amt2);
+                    unit.row_opp_mul(c, amt2);
+                    s.row_op_sub(r, c);
+                    unit.row_op_sub(r, c);
+                    s.row_op_div(c, amt2);
+                    unit.row_op_div(c, amt2);
+                    steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, amt2, c));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        steps.push(format!("R{} / ({:?}) → R{0}", r, amt1));
+                        s.row_op_div(r, amt1);
+                        unit.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        unit.row_op_add(r, c);
+                        steps.push(format!("R{} + R{} → R{0}", r, c));
+                        if !s[(r, c)].is_one() {
+                            steps.push(format!("R{} / ({:?}) → R{0}", r, s[(r, c)]));
+                            unit.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                unit.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                unit.row_op_sub(r, c);
+                s.row_op_div(c, src);
+                unit.row_op_div(c, src);
+                steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, src, c));
+            }
+        }
+        (unit, Some(steps))
+    }
+
+    fn try_inverse_debug(&self) -> Result<(Self, Option<Vec<String>>), MatrixError> {
+        if !self.is_unit_dimension() {
+            return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
+            columns - unable to make inverse.".to_string()));
+        }
+        let mut steps = Vec::new();
+        let mut s = self.clone();
+        let mut unit = Matrix::unit(self.rows);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let amt2 = amt1 / s[(c, c)];
+                    s.row_op_mul(c, amt2);
+                    unit.row_opp_mul(c, amt2);
+                    s.row_op_sub(r, c);
+                    unit.row_op_sub(r, c);
+                    s.row_op_div(c, amt2);
+                    unit.row_op_div(c, amt2);
+                    steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, amt2, c));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        steps.push(format!("R{} / ({:?}) → R{0}", r, amt1));
+                        s.row_op_div(r, amt1);
+                        unit.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        unit.row_op_add(r, c);
+                        steps.push(format!("R{} + R{} → R{0}", r, c));
+                        if !s[(r, c)].is_one() {
+                            steps.push(format!("R{} / ({:?}) → R{0}", r, s[(r, c)]));
+                            unit.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        if !self.is_REF() {
+            return Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
+            original matrix in REF form.".to_string));
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                unit.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                unit.row_op_sub(r, c);
+                s.row_op_div(c, src);
+                unit.row_op_div(c, src);
+                steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, src, c));
+            }
+        }
+        if s.is_unit() {
+            Ok((unit, steps))
+        } else {
+            Err(MatrixError::TransformError("Was unable to make an inverse - unable to put original \
+            matrix in RREF form.".to_string()))
+        }
+    }
 }
 
 pub(crate) trait InverseAssign {
-    fn inverse_assign(&mut self, print_steps: bool);
+    fn inverse_assign(&mut self);
+    fn try_inverse_assign(&mut self) -> Result<(), MatrixError>;
+}
+
+impl<T: Div + PartialOrd + PartialEq + Unit> InverseAssign for Matrix<T>
+    where Matrix<T>: RowOpAdd + RowOpSub + RowOpMul + RowOpDiv, {
+    fn inverse_assign(&mut self) {
+        assert!(self.is_unit_dimension());
+        let mut s = Matrix::unit(self.rows);
+        std::mem::swap(&mut s, &mut self);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let amt2 = amt1 / scc;
+                    s.row_op_mul(c, amt2);
+                    self.row_opp_mul(c, (amt1 / scc));
+                    s.row_op_sub(r, c);
+                    self.row_op_sub(r, c);
+                    s.row_op_div(c, (amt1 / scc));
+                    self.row_op_div(c, (amt1 / scc));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        s.row_op_div(r, amt1);
+                        self.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        self.row_op_add(r, c);
+                        if !s[(r, c)].is_one() {
+                            self.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                self.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                self.row_op_sub(r, c);
+                s.row_op_div(c, src);
+                self.row_op_div(c, src);
+            }
+        }
+    }
+
+    fn try_inverse_assign(&mut self) -> Result<(), MatrixError> {
+        if !self.is_unit_dimension() {
+            return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
+            columns - unable to make inverse.".to_string()));
+        }
+        let mut s = Matrix::unit(self.rows);
+        std::mem::swap(&mut s, &mut self);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let amt2 = amt1 / s[(c, c)];
+                    s.row_op_mul(c, (amt1 / scc));
+                    self.row_opp_mul(c, (amt1 / scc));
+                    s.row_op_sub(r, c);
+                    self.row_op_sub(r, c);
+                    s.row_op_div(c, (amt1 / scc));
+                    self.row_op_div(c, (amt1 / scc));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        s.row_op_div(r, amt1);
+                        self.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        self.row_op_add(r, c);
+                        if !s[(r, c)].is_one() {
+                            self.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        if !self.is_REF() {
+            return Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
+            original matrix in REF form.".to_string));
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                self.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                self.row_op_sub(r, c);
+                s.row_op_div(c, src);
+                self.row_op_div(c, src);
+            }
+        }
+        if s.is_unit() {
+            Ok(())
+        } else {
+            Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
+            original matrix in RREF form.".to_string()))
+        }
+    }
+}
+
+pub(crate) trait InverseAssignDisplay {
+    fn inverse_assign_display(&mut self) -> Option<Vec<String>>;
+    fn try_inverse_assign_display(&mut self) -> Result<Option<Vec<String>>, MatrixError>;
+}
+
+impl<T: PartialOrd + PartialEq + Unit + Display> InverseAssignDisplay for Matrix<T>
+    where Matrix<T>: RowOpAdd + RowOpSub + RowOpMul + RowOpDiv, {
+    fn inverse_assign_display(&mut self) -> Option<Vec<String>> {
+        assert!(self.is_unit_dimension());
+        if self.is_unit() {
+            return None;
+        }
+        let mut steps = Vec::new();
+        let mut s = Matrix::unit(self.rows);
+        std::mem::swap(&mut s, &mut self);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let scc = s[(c, c)];
+                    s.row_op_mul(c, (amt1 / scc));
+                    self.row_opp_mul(c, (amt1 / scc));
+                    s.row_op_sub(r, c);
+                    self.row_op_sub(r, c);
+                    s.row_op_div(c, (amt1 / scc));
+                    self.row_op_div(c, (amt1 / scc));
+                    steps.push(format!("R{} - ({}) * R{} → R{0}", r, scc, c));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        steps.push(format!("R{} / ({}) → R{0}", r, amt1));
+                        s.row_op_div(r, amt1);
+                        self.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        self.row_op_add(r, c);
+                        steps.push(format!("R{} + R{} → R{0}", r, c));
+                        if !s[(r, c)].is_one() {
+                            steps.push(format!("R{} / ({}) → R{0}", r, s[(r, c)]));
+                            self.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                self.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                self.row_op_sub(r, c);
+                s.row_op_div(c, src);
+                self.row_op_div(c, src);
+                steps.push(format!("R{} - ({}) * R{} → R{0}", r, src, c));
+            }
+        }
+        Some(steps)
+    }
+
+    fn try_inverse_assign_display(&mut self) -> Result<Option<Vec<String>>, MatrixError> {
+        if !self.is_unit_dimension() {
+            return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
+            columns - unable to make inverse.".to_string()));
+        }
+        if self.is_unit() {
+            return Ok(None);
+        }
+        let mut steps = Vec::new();
+        let mut s = Matrix::unit(self.rows);
+        std::mem::swap(&mut s, &mut self);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let scc = s[(c, c)];
+                    s.row_op_mul(c, (amt1 / scc));
+                    self.row_opp_mul(c, (amt1 / scc));
+                    s.row_op_sub(r, c);
+                    self.row_op_sub(r, c);
+                    s.row_op_div(c, (amt1 / scc));
+                    self.row_op_div(c, (amt1 / scc));
+                    steps.push(format!("R{} - ({}) * R{} → R{0}", r, scc, c));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        steps.push(format!("R{} / ({}) → R{0}", r, amt1));
+                        s.row_op_div(r, amt1);
+                        self.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        self.row_op_add(r, c);
+                        steps.push(format!("R{} + R{} → R{0}", r, c));
+                        if !s[(r, c)].is_one() {
+                            steps.push(format!("R{} / ({}) → R{0}", r, s[(r, c)]));
+                            self.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                self.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                self.row_op_sub(r, c);
+                s.row_op_div(c, src);
+                self.row_op_div(c, src);
+                steps.push(format!("R{} - ({}) * R{} → R{0}", r, src, c));
+            }
+        }
+        if s.is_unit() {
+            Ok(Some(steps))
+        } else {
+            Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
+            original matrix in RREF form.".to_string()))
+        }
+    }
+}
+
+pub(crate) trait InverseAssignDebug {
+    fn inverse_assign_debug(&mut self) -> Option<Vec<String>>;
+    fn try_inverse_assign_debug(&mut self) -> Result<Option<Vec<String>>, MatrixError>;
+}
+
+impl<T: Div + PartialOrd + PartialEq + Unit + Debug> InverseAssignDebug for Matrix<T>
+    where Matrix<T>: RowOpAdd + RowOpSub + RowOpMul + RowOpDiv, {
+    fn inverse_assign_debug(&mut self) -> Option<Vec<String>> {
+        assert!(self.is_unit_dimension());
+        if self.is_unit() {
+            return None;
+        }
+        let mut steps = Vec::new();
+        let mut s = Matrix::unit(self.rows);
+        std::mem::swap(&mut s, &mut self);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let scc = s[(c, c)];
+                    s.row_op_mul(c, (amt1 / scc));
+                    self.row_opp_mul(c, (amt1 / scc));
+                    s.row_op_sub(r, c);
+                    self.row_op_sub(r, c);
+                    s.row_op_div(c, (amt1 / scc));
+                    self.row_op_div(c, (amt1 / scc));
+                    steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, scc, c));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        steps.push(format!("R{} / ({:?}) → R{0}", r, amt1));
+                        s.row_op_div(r, amt1);
+                        self.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        self.row_op_add(r, c);
+                        steps.push(format!("R{} + R{} → R{0}", r, c));
+                        if !s[(r, c)].is_one() {
+                            steps.push(format!("R{} / ({:?}) → R{0}", r, s[(r, c)]));
+                            self.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                self.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                self.row_op_sub(r, c);
+                s.row_op_div(c, src);
+                self.row_op_div(c, src);
+                steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, src, c));
+            }
+        }
+        Some(steps)
+    }
+
+    fn try_inverse_assign_debug(&mut self) -> Result<(Self, Option<Vec<String>>), MatrixError> {
+        if !self.is_unit_dimension() {
+            return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
+            columns - unable to make inverse.".to_string()));
+        }
+        if self.is_unit() {
+            return Ok(None);
+        }
+        let mut steps = Vec::new();
+        let mut s = Matrix::unit(self.rows);
+        std::mem::swap(&mut s, &mut self);
+        for r in 0..s.num_rows() {
+            for c in 0..r + 1 {
+                let amt1 = s[(r, c)].clone();
+                if c < r {
+                    if amt1.is_zero() {
+                        continue;
+                    }
+                    if s[(c, c)].is_zero() {
+                        continue;
+                    }
+                    let scc = s[(c, c)];
+                    s.row_op_mul(c, (amt1 / scc));
+                    self.row_opp_mul(c, (amt1 / scc));
+                    s.row_op_sub(r, c);
+                    self.row_op_sub(r, c);
+                    s.row_op_div(c, (amt1 / scc));
+                    self.row_op_div(c, (amt1 / scc));
+                    steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, scc, c));
+                } else if c == r {
+                    if amt1.is_one() {
+                        continue;
+                    } else if !amt1.is_zero() {
+                        steps.push(format!("R{} / ({:?}) → R{0}", r, amt1));
+                        s.row_op_div(r, amt1);
+                        self.row_op_div(r, amt1);
+                    }
+                    if s.is_zero() {
+                        if s[(c, c)].is_zero() {
+                            continue;
+                        }
+                        s.row_op_add(r, c);
+                        self.row_op_add(r, c);
+                        steps.push(format!("R{} + R{} → R{0}", r, c));
+                        if !s[(r, c)].is_one() {
+                            steps.push(format!("R{} / ({:?}) → R{0}", r, s[(r, c)]));
+                            self.row_op_div(r, s[(r, c)]);
+                            s.row_op_div(r, s[(r, c)]);
+                        }
+                    }
+                }
+            }
+        }
+        for c in (1..s.num_columns()).rev() {
+            for r in (0..c).rev() {
+                let src = s[(r, c)];
+                if src.is_zero() {
+                    continue;
+                }
+                s.row_op_mul(c, src);
+                self.row_op_mul(c, src);
+                s.row_op_sub(r, c);
+                self.row_op_sub(r, c);
+                s.row_op_div(c, src);
+                self.row_op_div(c, src);
+                steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, src, c));
+            }
+        }
+        if s.is_unit() {
+            Ok(Some(steps))
+        } else {
+            Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
+            original matrix in RREF form.".to_string()))
+        }
+    }
 }
