@@ -68,7 +68,7 @@ macro_rules! matrix_base_impls {
                 let mut cur_pos = 0;
                 for a in 0..self.dimension.1 {
                     for b in 0..self.dimension.0 {
-                        std::mem::swap(&mut self.matrix[cur_pos], &mut tmp[a + b * self.num_columns()]);
+                        std::mem::swap(&mut self.matrix[cur_pos], &mut tmp[a + b * self.columns]);
                         cur_pos += 1;
                     }
                 }
