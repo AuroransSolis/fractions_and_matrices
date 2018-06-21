@@ -98,10 +98,10 @@ macro_rules! matrix_base_impls {
         }
 
         impl<T> $target_type {
-            pub fn dimension(&self) -> (usize, usize) {
+            pub fn get_alignemt(&self) -> Alignment {
                 match self.alignment {
-                    &Alignment::RowAligned => (self.rows, self.columns),
-                    &Alignment::ColumnAligned => (self.columns, self.rows)
+                    &Alignment::RowAligned => Alignment::RowAligned,
+                    &Alignment::ColumnAligned => Alignment::ColumnAligned
                 }
             }
 
@@ -109,20 +109,6 @@ macro_rules! matrix_base_impls {
                 match self.alignment {
                     &Alignment::RowAligned => self.rows,
                     &Alignment::ColumnAligned => self.columns
-                }
-            }
-
-            pub fn num_columns(&self) -> usize {
-                match self.alignment {
-                    &Alignment::RowAligned => self.columns,
-                    &Alignment::ColumnAligned => self.rows
-                }
-            }
-
-            pub fn get_alignemt(&self) -> Alignment {
-                match self.alignment {
-                    &Alignment::RowAligned => Alignment::RowAligned,
-                    &Alignment::ColumnAligned => Alignment::ColumnAligned
                 }
             }
 
@@ -144,6 +130,38 @@ macro_rules! matrix_base_impls {
 }
 
 matrix_base_impls!{AugmentedMatrix<T>, AugmentedMatrix; Matrix<T>, Matrix}
+
+impl<T> Matrix<T> {
+    pub fn dimension(&self) -> (usize, usize) {
+        match self.alignment {
+            &Alignment::RowAligned => (self.rows, self.columns),
+            &Alignment::ColumnAligned => (self.columns, self.rows)
+        }
+    }
+
+    pub fn num_columns(&self) -> usize {
+        match self.alignment {
+            &Alignment::RowAligned => self.columns,
+            &Alignment::ColumnAligned => self.rows
+        }
+    }
+}
+
+impl<T> AugmentedMatrix<T> {
+    pub fn dimension(&self) -> (usize, usize) {
+        match self.alignment {
+            &Alignment::RowAligned => (self.rows, self.columns - 1),
+            &Alignment::ColumnAligned => (self.columns, self.rows - 1)
+        }
+    }
+
+    pub fn num_columns(&self) -> usize {
+        match self.alignment {
+            &Alignment::RowAligned => self.columns - 1,
+            &Alignment::ColumnAligned => self.rows - 1
+        }
+    }
+}
 
 pub enum MatrixError {
     InitError(String),
