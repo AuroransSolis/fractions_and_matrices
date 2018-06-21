@@ -210,7 +210,8 @@ macro_rules! transforms_impl {
                 Some(format!("R{} / {} → R{0}", row, row_gcd))
             }
 
-            fn simplify_rows_get_steps_ds(&mut self, rows: Range<usize>) -> Option<Vec<Option<String>>> {
+            fn simplify_rows_get_steps_ds(&mut self, rows: Range<usize>)
+                -> Option<Vec<Option<String>>> {
                 if self.num_columns() < 2 {
                     return None;
                 }
@@ -253,7 +254,8 @@ macro_rules! transforms_impl {
                 Some(format!("R{} / {:?} → R{0}", row, row_gcd))
             }
 
-            fn simplify_rows_get_steps_db(&mut self, rows: Range<usize>) -> Option<Vec<Option<String>>> {
+            fn simplify_rows_get_steps_db(&mut self, rows: Range<usize>)
+                -> Option<Vec<Option<String>>> {
                 if self.num_columns() < 2 {
                     return None;
                 }
@@ -283,8 +285,8 @@ macro_rules! transforms_impl {
                                 continue;
                             }
                             // The value at (c, c) can be used to make (r, c) zero for REF - if
-                            // (c, c).is_zero(), just continue since doing more work on (r, c) right now
-                            // is pointless
+                            // (c, c).is_zero(), just continue since doing more work on (r, c) right
+                            // now is pointless
                             if self[(c, c)].is_zero() {
                                 continue;
                             }
@@ -298,7 +300,8 @@ macro_rules! transforms_impl {
                             } else if !amt1.is_zero() { // If it's not zero...
                                 self.row_op_div(r, amt1); // ...divide by itself to make it one
                             } if self.is_zero() { // If it is zero...
-                                if self[(c, c)].is_zero() { // ...and the best tool is also zero, continue
+                                // ...and the best tool is also zero, continue
+                                if self[(c, c)].is_zero() {
                                     continue;
                                 }
                                 self.row_op_add(r, c); // Otherwise, add said tool to row 'r'
@@ -462,7 +465,8 @@ macro_rules! transforms_impl {
             }
         }
 
-        impl<T: Neg + PartialEq + PartialOrd + Zero + One + Display> RREFDisplay for $target_type where $target_type: REF, {
+        impl<T: Neg + PartialEq + PartialOrd + Zero + One + Display> RREFDisplay for $target_type
+            where $target_type: REF, {
             fn gauss_jordan_display(&mut self) -> Option<Vec<String>> {
                 if self.is_RREF() {
                     return None;
@@ -492,7 +496,8 @@ macro_rules! transforms_impl {
             }
         }
 
-        impl<T: Neg + PartialEq + PartialOrd + Zero + One + Debug> RREFDebug for $target_type where $target_type: REF, {
+        impl<T: Neg + PartialEq + PartialOrd + Zero + One + Debug> RREFDebug for $target_type
+            where $target_type: REF, {
             fn gauss_jordan_debug(&mut self) -> Option<Vec<String>> {
                 if self.is_RREF() {
                     return None;
@@ -515,7 +520,8 @@ macro_rules! transforms_impl {
                         self.row_op_mul(c, self_rc);
                         self.row_op_sub(r, c);
                         self.row_op_div(c, self_rc);
-                        steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, self_rc, c));
+                        steps.push(format!("Step {}: R{} - ({:?}) * R{} → R{0}", steps.len(), r,
+                                           self_rc, c));
                     }
                 }
                 Some(steps)
@@ -530,7 +536,7 @@ macro_rules! transforms_impl {
                 let mut unit = Matrix::unit(self.rows);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -586,14 +592,14 @@ macro_rules! transforms_impl {
 
             fn try_inverse(&self) -> Result<Self, MatrixError> {
                 if !self.is_unit_dimension() {
-                    return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
-            columns - unable to make inverse.".to_string()));
+                    return Err(MatrixError::InitError("Matrix does not have the same number of \
+                    rows and columns - unable to make inverse.".to_string()));
                 }
                 let mut s = self.clone();
                 let mut unit = Matrix::unit(self.rows);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -630,8 +636,8 @@ macro_rules! transforms_impl {
                     }
                 }
                 if !self.is_REF() {
-                    return Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
-            original matrix in REF form.".to_string));
+                    return Err(MatrixError::TransformError("Was unable to make an inverse - unable \
+                    to put original matrix in REF form.".to_string));
                 }
                 for c in (1..s.num_columns()).rev() {
                     for r in (0..c).rev() {
@@ -650,8 +656,8 @@ macro_rules! transforms_impl {
                 if s.is_unit() {
                     Ok(unit)
                 } else {
-                    Err(MatrixError::TransformError("Was unable to make an inverse - unable to put original \
-            matrix in RREF form.".to_string()))
+                    Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
+                    original matrix in RREF form.".to_string()))
                 }
             }
         }
@@ -668,7 +674,7 @@ macro_rules! transforms_impl {
                 let mut unit = Matrix::unit(self.rows);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -729,15 +735,15 @@ macro_rules! transforms_impl {
 
             fn try_inverse_display(&self) -> Result<(Self, Option<Vec<String>>), MatrixError> {
                 if !self.is_unit_dimension() {
-                    return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
-            columns - unable to make inverse.".to_string()));
+                    return Err(MatrixError::InitError("Matrix does not have the same number of \
+                    rows and columns - unable to make inverse.".to_string()));
                 }
                 let mut steps = Vec::new();
                 let mut s = self.clone();
                 let mut unit = Matrix::unit(self.rows);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -778,8 +784,8 @@ macro_rules! transforms_impl {
                     }
                 }
                 if !self.is_REF() {
-                    return Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
-            original matrix in REF form.".to_string));
+                    return Err(MatrixError::TransformError("Was unable to make an inverse - unable \
+                    to put original matrix in REF form.".to_string));
                 }
                 for c in (1..s.num_columns()).rev() {
                     for r in (0..c).rev() {
@@ -799,8 +805,8 @@ macro_rules! transforms_impl {
                 if s.is_unit() {
                     Ok((unit, steps))
                 } else {
-                    Err(MatrixError::TransformError("Was unable to make an inverse - unable to put original \
-            matrix in RREF form.".to_string()))
+                    Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
+                    original matrix in RREF form.".to_string()))
                 }
             }
         }
@@ -817,7 +823,7 @@ macro_rules! transforms_impl {
                 let mut unit = Matrix::unit(self.rows);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -878,15 +884,15 @@ macro_rules! transforms_impl {
 
             fn try_inverse_debug(&self) -> Result<(Self, Option<Vec<String>>), MatrixError> {
                 if !self.is_unit_dimension() {
-                    return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
-            columns - unable to make inverse.".to_string()));
+                    return Err(MatrixError::InitError("Matrix does not have the same number of \
+                    rows and columns - unable to make inverse.".to_string()));
                 }
                 let mut steps = Vec::new();
                 let mut s = self.clone();
                 let mut unit = Matrix::unit(self.rows);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -927,8 +933,8 @@ macro_rules! transforms_impl {
                     }
                 }
                 if !self.is_REF() {
-                    return Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
-            original matrix in REF form.".to_string));
+                    return Err(MatrixError::TransformError("Was unable to make an inverse - unable \
+                    to put original matrix in REF form.".to_string));
                 }
                 for c in (1..s.num_columns()).rev() {
                     for r in (0..c).rev() {
@@ -948,8 +954,8 @@ macro_rules! transforms_impl {
                 if s.is_unit() {
                     Ok((unit, steps))
                 } else {
-                    Err(MatrixError::TransformError("Was unable to make an inverse - unable to put original \
-            matrix in RREF form.".to_string()))
+                    Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
+                    original matrix in RREF form.".to_string()))
                 }
             }
         }
@@ -962,7 +968,7 @@ macro_rules! transforms_impl {
                 std::mem::swap(&mut s, &mut self);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -1017,14 +1023,14 @@ macro_rules! transforms_impl {
 
             fn try_inverse_assign(&mut self) -> Result<(), MatrixError> {
                 if !self.is_unit_dimension() {
-                    return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
-            columns - unable to make inverse.".to_string()));
+                    return Err(MatrixError::InitError("Matrix does not have the same number of \
+                    rows and columns - unable to make inverse.".to_string()));
                 }
                 let mut s = Matrix::unit(self.rows);
                 std::mem::swap(&mut s, &mut self);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -1061,8 +1067,8 @@ macro_rules! transforms_impl {
                     }
                 }
                 if !self.is_REF() {
-                    return Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
-            original matrix in REF form.".to_string));
+                    return Err(MatrixError::TransformError("Was unable to make an inverse - unable \
+                    to put original matrix in REF form.".to_string));
                 }
                 for c in (1..s.num_columns()).rev() {
                     for r in (0..c).rev() {
@@ -1082,7 +1088,7 @@ macro_rules! transforms_impl {
                     Ok(())
                 } else {
                     Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
-            original matrix in RREF form.".to_string()))
+                    original matrix in RREF form.".to_string()))
                 }
             }
         }
@@ -1099,7 +1105,7 @@ macro_rules! transforms_impl {
                 std::mem::swap(&mut s, &mut self);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -1160,8 +1166,8 @@ macro_rules! transforms_impl {
 
             fn try_inverse_assign_display(&mut self) -> Result<Option<Vec<String>>, MatrixError> {
                 if !self.is_unit_dimension() {
-                    return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
-            columns - unable to make inverse.".to_string()));
+                    return Err(MatrixError::InitError("Matrix does not have the same number of \
+                    rows and columns - unable to make inverse.".to_string()));
                 }
                 if self.is_unit() {
                     return Ok(None);
@@ -1171,7 +1177,7 @@ macro_rules! transforms_impl {
                 std::mem::swap(&mut s, &mut self);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -1231,7 +1237,7 @@ macro_rules! transforms_impl {
                     Ok(Some(steps))
                 } else {
                     Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
-            original matrix in RREF form.".to_string()))
+                    original matrix in RREF form.".to_string()))
                 }
             }
         }
@@ -1248,7 +1254,7 @@ macro_rules! transforms_impl {
                 std::mem::swap(&mut s, &mut self);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -1307,10 +1313,11 @@ macro_rules! transforms_impl {
                 Some(steps)
             }
 
-            fn try_inverse_assign_debug(&mut self) -> Result<(Self, Option<Vec<String>>), MatrixError> {
+            fn try_inverse_assign_debug(&mut self)
+                -> Result<(Self, Option<Vec<String>>), MatrixError> {
                 if !self.is_unit_dimension() {
-                    return Err(MatrixError::InitError("Matrix does not have the same number of rows and \
-            columns - unable to make inverse.".to_string()));
+                    return Err(MatrixError::InitError("Matrix does not have the same number of \
+                    rows and columns - unable to make inverse.".to_string()));
                 }
                 if self.is_unit() {
                     return Ok(None);
@@ -1320,7 +1327,7 @@ macro_rules! transforms_impl {
                 std::mem::swap(&mut s, &mut self);
                 for r in 0..s.num_rows() {
                     for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
+                        let amt1 = s[(r, c)];
                         if c < r {
                             if amt1.is_zero() {
                                 continue;
@@ -1379,7 +1386,7 @@ macro_rules! transforms_impl {
                     Ok(Some(steps))
                 } else {
                     Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
-            original matrix in RREF form.".to_string()))
+                    original matrix in RREF form.".to_string()))
                 }
             }
         }
