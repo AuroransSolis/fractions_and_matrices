@@ -167,8 +167,8 @@ matrix_forward_ref_try_binop!{TrySubMatrices, SubAssign, try_sub, Matrix<T>}
 fn try_mul_div_valid_operation_check(d1: (usize, usize), d2: (usize, usize))
     -> Result<(), MatrixError> {
     if d1.1 != d2.0 {
-        return Err(MatrixError::FunctionError("The matrix on the left of the operand does not have the \
-            same number of columns as the number of rows in the matrix on the right of the operand."
+        return Err(MatrixError::FunctionError("The matrix on the left of the operand does not have \
+        the same number of columns as the number of rows in the matrix on the right of the operand."
                 .to_string()
         ));
     }
@@ -188,7 +188,7 @@ impl<T, U> TryMulMatrices<Matrix<U>> for Matrix<T>
             let mut matr = Matrix::splat(&T::from(0), (self.rows, other.rows), false, ROW_ALIGNED);
             for a in 0..self.rows {
                 for b in 0..other.rows {
-                    matr[a][b] += (self[a][b].clone() * other[b][a].clone().into()).into();
+                    mat[a][b] += (self[a][b].clone() * other[b][a].clone().into()).into();
                 }
             }
             matr
@@ -240,53 +240,17 @@ impl<'a, 'b, T, U> TryMulMatrices<&'b Matrix<U>> for &'a Matrix<T>
     }
 }
 
-impl<T, U> TryDivMatrices<Matrix<U>> for Matrix<T>
-    where
-        T: Add + AddAssign + Mul + Clone + From<i32>
-        + From<U> + From<<T as Mul<T>>::Output>,
-        U: Mul<T> + Mul + Clone + Mul<U>,
-        Matrix<U>: Inverse,
-        <T as Mul>::Output: Into<T>, {
+impl<T, U> TryDivMatrices<Matrix<U>> for Matrix<T> where Matrix<U>: TryMulMatrices + Inverse, {
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_div(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
         try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension())?;
-        if let Ok(inv) = other.try_inverse() {
-            if self.alignment != inv.alignment {
-                let mut matr = Matrix::splat(&T::from(0), (self.rows, other.rows), false,
-                                             ROW_ALIGNED);
-                for a in 0..self.rows {
-                    for b in 0..other.rows {
-                        matr[a][b] += (self[a][b].clone() * inv[b][a].clone().into()).into();
-                    }
-                }
-                Ok(matr)
-            } else {
-                let mut matr = Matrix::splat(&T::from(0), (self.rows, other.rows), false,
-                                             ROW_ALIGNED);
-                for a in 0..self.rows {
-                    for b in 0..other.rows {
-                        matr[a][b] += (self[(a, b)].clone() * inv[(b, a)].clone().into()).into();
-                    }
-                }
-                Ok(matr)
-            }
-        } else {
-            return MatrixError::FunctionError("Unable to make inverse of divisor matrix!"
-                .to_string());
-        }
+        let inv = other.try_inverse()?;
+        self.try_mul(inv)
     }
 }
 
-
-
-impl<'a, T, U> TryDivMatrices for Matrix<T>
-    where
-        T: Add + AddAssign + Mul + Clone + From<i32>
-        + From<U> + From<<T as Mul<T>>::Output>,
-        U: Mul<T> + Mul + Clone + Mul<U>,
-        Matrix<U>: Inverse,
-        <T as Mul>::Output: Into<T>, {
+impl<'a, T, U> TryDivMatrices for Matrix<T> where Matrix<U>: TryMulMatrices + Inverse, {
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_div(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
@@ -295,12 +259,7 @@ impl<'a, T, U> TryDivMatrices for Matrix<T>
 }
 
 impl<'a, T, U> TryDivMatrices<Matrix<U>> for &'a Matrix<T>
-    where
-        T: Add + AddAssign + Mul + Clone + From<i32>
-        + From<U> + From<<T as Mul<T>>::Output>,
-        U: Mul<T> + Mul + Clone + Mul<U>,
-        Matrix<U>: Inverse,
-        <T as Mul>::Output: Into<T>, {
+    where Matrix<U>: TryMulMatrices + Inverse, {
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_div(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
@@ -309,12 +268,7 @@ impl<'a, T, U> TryDivMatrices<Matrix<U>> for &'a Matrix<T>
 }
 
 impl<'a, 'b, T, U> TryDivMatrices<&'b Matrix<U>> for &'a Matrix<T>
-    where
-        T: Add + AddAssign + Mul + Clone + From<i32>
-        + From<U> + From<<T as Mul<T>>::Output>,
-        U: Mul<T> + Mul + Clone + Mul<U>,
-        Matrix<U>: Inverse,
-        <T as Mul>::Output: Into<T>, {
+    where Matrix<U>: TryMulMatrices + Inverse, {
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_div(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
@@ -434,10 +388,7 @@ impl<'a, T, U> TryMulAssignMatrices<&'a Matrix<U>> for Matrix<T>
 impl<T, U> TryDivAssignMatrices<Matrix<U>> for Matrix<T>
     where Matrix<T>: TryDivMatrices<Matrix<U>> {
     fn try_div_assign(&mut self, other: Matrix<U>) -> Result<(), MatrixError> {
-        match try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension()) {
-            Ok(aaa) => return Ok(aaa),
-            Err(AAA) => return Err(AAA)
-        }
+        try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension())?;
         match self.try_div(other) {
             Ok(res) => {
                 *self = res;
@@ -451,10 +402,7 @@ impl<T, U> TryDivAssignMatrices<Matrix<U>> for Matrix<T>
 impl<'a, T, U> TryDivAssignMatrices<&'a Matrix<U>> for Matrix<T>
     where Matrix<T>: TryDivMatrices<Matrix<U>> {
     fn try_div_assign(&mut self, other: Matrix<U>) -> Result<(), MatrixError> {
-        match try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension()) {
-            Ok(aaa) => return Ok(aaa),
-            Err(AAA) => return Err(AAA)
-        }
+        try_mul_div_valid_operation_check(self.get_dimension(), other.get_dimension())?;
         match self.try_div(other) {
             Ok(res) => {
                 *self = res;
