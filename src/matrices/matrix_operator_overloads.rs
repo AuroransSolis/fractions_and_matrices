@@ -243,42 +243,42 @@ impl<T, U> Mul<Matrix<U>> for Matrix<T>
 
 matrix_forward_ref_binop!{Mul, mul, Matrix<T>}
 
-impl<T, U> Div<Matrix<U>> for Matrix<T>
-    where
-        T: Add + AddAssign + Mul + Clone + From<i32>
-            + From<U> + From<<T as Mul<T>>::Output>,
-        U: Mul<T> + Mul + Clone + Mul<U>,
-        Matrix<U>: Inverse,
-        <T as Mul>::Output: Into<T>, {
+impl<T, U> Div<Matrix<U>> for Matrix<T> where Matrix<U>: Inverse, Matrix<T>: Mul<Matrix<U>>, {
     type Output = Matrix<T>;
 
     fn div(self, rhs: Matrix<U>) -> Self {
         mul_div_valid_operation_check(self.get_dimension(), rhs.get_dimension());
-        if let Ok(inv) = rhs.inverse() {
-            if self.alignment != inv.alignment {
-                let mut matr = Matrix::splat(&T::from(0), (self.rows, rhs.rows), false, ROW_ALIGNED);
-                for a in 0..self.rows {
-                    for b in 0..rhs.rows {
-                        matr[a][b] += (self[a][b].clone() * inv[b][a].clone().into()).into();
-                    }
-                }
-                matr
-            } else {
-                let mut matr = Matrix::splat(&T::from(0), (self.rows, rhs.rows), false, ROW_ALIGNED);
-                for a in 0..self.rows {
-                    for b in 0..rhs.rows {
-                        matr[a][b] += (self[(a, b)].clone() * inv[(b, a)].clone().into()).into();
-                    }
-                }
-                matr
-            }
-        } else {
-            panic!("Unable to make inverse of divisor matrix!");
-        }
+        let inv = rhs.inverse();
+        self * inv
     }
 }
 
-matrix_forward_ref_binop!{Div, div, Matrix<T>}
+impl<'a, T, U> Div<&'a Matrix<U>> for Matrix<T>
+    where Matrix<U>: Inverse, Matrix<T>: Mul<Matrix<U>>, {
+    type Output = Matrix<T>;
+
+    fn div(self, rhs: &'a Matrix<U>) -> Self {
+        self / rhs.clone()
+    }
+}
+
+impl<'a, T, U> Div<Matrix<U>> for &'a Matrix<T>
+    where Matrix<U>: Inverse, Matrix<T>: Mul<Matrix<U>>, {
+    type Output = Matrix<T>;
+
+    fn div(&'a self, rhs: Matrix<U>) -> Self {
+        self.clone() / rhs
+    }
+}
+
+impl<'a, 'b, T, U> Div<&'b Matrix<U>> for &'a Matrix<T>
+    where Matrix<U>: Inverse, Matrix<T>: Mul<Matrix<U>>, {
+    type Output = Matrix<T>;
+
+    fn div(&'a self, rhs: &'b Matrix<U>) -> Self {
+        self.clone() / rhs.clone()
+    }
+}
 
 macro_rules! matrix_forward_ref_op_assign {
     ($imp:ident, $method:ident, $t:ty)  => {
@@ -371,35 +371,10 @@ impl<T, U> MulAssign<Matrix<U>> for Matrix<T>
 matrix_forward_ref_op_assign!{MulAssign, mul_assign, Matrix<T>}
 
 impl<T, U> DivAssign<Matrix<U>> for Matrix<T>
-    where
-        T: Add + AddAssign + Sub + SubAssign + Mul + MulAssign + Clone + From<i32>
-        + From<U> + From<<T as Mul<T>>::Output>,
-        U: Mul<T> + Mul + Clone + Mul<U>,
-        Matrix<U>: Inverse, {
+    where Matrix<U>: Inverse, Matrix<T>: MulAssign<Matrix<U>>, {
     fn div_assign(&mut self, rhs: Matrix<U>) {
         mul_div_valid_operation_check(self.get_dimension(), rhs.get_dimension());
-        if let Ok(inv) = rhs.inverse() {
-            if self.alignment != inv.alignment {
-                let mut matr = Matrix::splat(&T::from(0), (self.rows, rhs.rows), false, ROW_ALIGNED);
-                for a in 0..self.rows {
-                    for b in 0..rhs.rows {
-                        matr[a][b] += (self[a][b].clone() + inv[b][a].clone().into()).into();
-                    }
-                }
-                *self = matr;
-            } else {
-                let mut matr = Matrix::splat(&T::from(0), (self.rows, rhs.rows), false, ROW_ALIGNED);
-                for a in 0..self.rows {
-                    for b in 0..rhs.rows {
-                        matr[a][b] += (self[(a, b)].clone() + inv[(b, a)].clone().into()).into();
-                    }
-                }
-                *self = matr;
-            }
-        } else {
-            panic!("Unable to make inverse of divisor matrix!");
-        }
+        let inv = rhs.inverse();
+        self *= inv;
     }
 }
-
-matrix_forward_ref_op_assign!{DivAssign, div_assign, Matrix<T>}
