@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::fmt;
 use matrices::matrix_base::{AugmentedMatrix, Matrix};
 

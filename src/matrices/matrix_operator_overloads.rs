@@ -1,62 +1,10 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Index, IndexMut, Range};
+use num::Zero;
+
+use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Range};
 use std::cmp::PartialEq;
 
 use matrices::matrix_base::{AugmentedMatrix, Matrix, Alignment};
 use matrices::matrix_transforms::Inverse;
-
-macro_rules! matrix_index_methods {
-    ($($target_type:ty)* ) => ($(
-        impl<T> Index<(usize, usize)> for $target_type {
-            type Output = T;
-
-            fn index<'a>(&'a self, index: (usize, usize)) -> &'a T {
-                match self.alignment {
-                    &Alignment::RowAligned => &self[index.0 * self.num_columns() + index.1],
-                    &Alignment::ColumnAligned => &self[index.0 * self.num_rows() + index.1]
-                }
-            }
-        }
-
-        impl<T> Index<usize> for $target_type {
-            type Output = [T];
-
-            fn index<'a>(&'a self, index: usize) -> &'a [T] {
-                self.matrix[(index * self.columns)..((index + 1) * self.columns)]
-            }
-        }
-
-        impl<T> Index<Range<usize>> for $target_type {
-            type Output = [T];
-
-            fn index<'a>(&'a self, index: Range<usize>) -> &'a [T] {
-                self.matrix.as_slice()[(index.start * self.columns)..(index.end * self.columns)]
-            }
-        }
-
-        impl<T> IndexMut<(usize, usize)> for $target_type {
-            fn index_mut<'a>(&'a mut self, index: (usize, usize)) -> &'a mut T {
-                match self.alignment {
-                    &Alignment::RowAligned => &mut self[index.0][index.1],
-                    &Alignment::ColumnAligned => &mut self[index.1][index.0]
-                }
-            }
-        }
-
-        impl<T> IndexMut<usize> for $target_type {
-            fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut [T] {
-                self.matrix.as_mut_slice()[(index * self.columns)..((index + 1) * self.columns)]
-            }
-        }
-
-        impl<T> IndexMut<Range<usize>> for $target_type {
-            fn index_mut<'a>(&'a mut self, index: Range<usize>) -> &'a mut T {
-                self.matrix.as_mut_slice()[(index.start * self.columns)..(index.end * self.columns)]
-            }
-        }
-    )*)
-}
-
-matrix_index_methods!{AugmentedMatrix<T> Matrix<T>}
 
 impl<T: PartialEq> PartialEq for Matrix<T> {
     fn eq(&self, other: &Matrix<T>) -> bool {
@@ -105,46 +53,6 @@ fn add_sub_valid_operation_check(d1: (usize, usize), d2: (usize, usize)) {
     valid_operation_check(d1, d2);
 }
 
-macro_rules! matrix_forward_ref_binop {
-    ($imp:ident, $method:ident, $t:ty) => {
-        impl <'a, T, U> $imp<&'a Matrix<U>> for Matrix<T>
-            where
-                T: $imp + Clone,
-                U: Into<T> + Clone,
-                <T as $imp>::Output: Into<T>, {
-            type Output = <$t as $imp>::Output;
-
-            fn $method(self, rhs: &'a Matrix<U>) -> $t {
-                $imp::$method(self, rhs.clone())
-            }
-        }
-
-        impl <'a, T, U> $imp<Matrix<U>> for &'a Matrix<T>
-            where
-                T: $imp + Clone,
-                U: Into<T> + Clone,
-                <T as $imp>::Output: Into<T>, {
-            type Output = <$t as $imp>::Output;
-
-            fn $method(self, rhs: Matrix<U>) -> $t {
-                $imp::method(self.clone(), rhs)
-            }
-        }
-
-        impl <'a, 'b, T, U> $imp<&'b Matrix<U>> for &'a Matrix<T>
-            where
-                T: $imp + Clone,
-                U: Into<T> + Clone,
-                <T as $imp>::Output: Into<T>, {
-            type Output = <$t as $imp>::Output;
-
-            fn $method(self, rhs: &'b Matrix<U>) -> $t {
-                $imp::method(self.clone(), rhs.clone())
-            }
-        }
-    }
-}
-
 impl<T, U> Add<Matrix<U>> for Matrix<T>
     where
         T: AddAssign<T> + Clone,
@@ -152,7 +60,7 @@ impl<T, U> Add<Matrix<U>> for Matrix<T>
     type Output = Matrix<T>;
 
     fn add(mut self, rhs: Matrix<U>) -> Self {
-        add_sub_valid_operation_check(self.get_dimension(), rhs.get_dimension());
+        add_sub_valid_operation_check(self.dimension(), rhs.dimension());
         if self.alignment == rhs.alignment {
             for i in 0..self.rows {
                 for j in 0..self.columns {
@@ -171,7 +79,44 @@ impl<T, U> Add<Matrix<U>> for Matrix<T>
     }
 }
 
-matrix_forward_ref_binop!{Add, add, Matrix<T>}
+impl<'a, T, U> Add<&'a Matrix<U>> for Matrix<T>
+    where
+        T: AddAssign<T> + Clone,
+        U: Clone,
+        Matrix<T>: Add<Matrix<U>>,
+        <Matrix<T> as Add<Matrix<U>>>::Output: Into<Matrix<T>> {
+    type Output = Matrix<T>;
+
+    fn add(self, rhs: &'a Matrix<U>) -> Self {
+        (self + rhs.clone()).into()
+    }
+}
+
+impl<'a, T, U> Add<Matrix<U>> for &'a Matrix<T>
+    where
+        T: AddAssign<T> + Clone,
+        U: Clone,
+        Matrix<T>: Add<Matrix<U>>,
+        <Matrix<T> as Add<Matrix<U>>>::Output: Into<Matrix<T>> {
+    type Output = Matrix<T>;
+
+    fn add(self, rhs: Matrix<U>) -> Self::Output {
+        (self.clone() + rhs).into()
+    }
+}
+
+impl<'a, 'b, T, U> Add<&'b Matrix<U>> for &'a Matrix<T>
+    where
+        T: AddAssign<T> + Clone,
+        U: Clone,
+        Matrix<T>: Add<Matrix<U>>,
+        <Matrix<T> as Add<Matrix<U>>>::Output: Into<Matrix<T>> {
+    type Output = Matrix<T>;
+
+    fn add(self, rhs: &'b Matrix<U>) -> Self::Output {
+        (self.clone() + rhs.clone()).into()
+    }
+}
 
 impl<T, U> Sub<Matrix<U>> for Matrix<T>
     where
@@ -180,7 +125,7 @@ impl<T, U> Sub<Matrix<U>> for Matrix<T>
     type Output = Matrix<T>;
 
     fn sub(mut self, rhs: Matrix<U>) -> Self {
-        add_sub_valid_operation_check(self.get_dimension(), rhs.get_dimension());
+        add_sub_valid_operation_check(self.dimension(), rhs.dimension());
         if self.alignment == rhs.alignment {
             for i in 0..self.rows {
                 for j in 0..self.columns {
@@ -199,7 +144,44 @@ impl<T, U> Sub<Matrix<U>> for Matrix<T>
     }
 }
 
-matrix_forward_ref_binop!{Sub, sub, Matrix<T>}
+impl<'a, T, U> Sub<&'a Matrix<U>> for Matrix<T>
+    where
+        T: SubAssign<T> + Clone,
+        U: Clone,
+        Matrix<T>: Sub<Matrix<U>>,
+        <Matrix<T> as Sub<Matrix<U>>>::Output: Into<Matrix<T>> {
+    type Output = Matrix<T>;
+
+    fn sub(self, rhs: &'a Matrix<U>) -> Self {
+        (self - rhs.clone()).into()
+    }
+}
+
+impl<'a, T, U> Sub<Matrix<U>> for &'a Matrix<T>
+    where
+        T: SubAssign<T> + Clone,
+        U: Clone,
+        Matrix<T>: Sub<Matrix<U>>,
+        <Matrix<T> as Sub<Matrix<U>>>::Output: Into<Matrix<T>> {
+    type Output = Matrix<T>;
+
+    fn sub(self, rhs: Matrix<U>) -> Self::Output {
+        (self.clone() - rhs).into()
+    }
+}
+
+impl<'a, 'b, T, U> Sub<&'b Matrix<U>> for &'a Matrix<T>
+    where
+        T: SubAssign<T> + Clone,
+        U: Clone,
+        Matrix<T>: Sub<Matrix<U>>,
+        <Matrix<T> as Sub<Matrix<U>>>::Output: Into<Matrix<T>> {
+    type Output = Matrix<T>;
+
+    fn sub(self, rhs: &'b Matrix<U>) -> Self::Output {
+        (self.clone() - rhs.clone()).into()
+    }
+}
 
 fn mul_div_valid_operation_check(d1: (usize, usize), d2: (usize, usize)) {
     if d1.1 != d2.0 {
@@ -209,31 +191,28 @@ fn mul_div_valid_operation_check(d1: (usize, usize), d2: (usize, usize)) {
     valid_operation_check(d1, d2);
 }
 
-use matrices::matrix_base::ROW_ALIGNED;
-use matrices::matrix_base::COLUMN_ALIGNED;
-
 impl<T, U> Mul<Matrix<U>> for Matrix<T>
     where
-        T: AddAssign + Mul<T> + Clone + From<i32>,
+        T: AddAssign + Mul<T> + Clone + Zero,
         U: Into<T> + Clone,
         <T as Mul<T>>::Output: Into<T>, {
     type Output = Matrix<T>;
 
     fn mul(self, rhs: Matrix<U>) -> Self {
-        mul_div_valid_operation_check(self.get_dimension(), rhs.get_dimension());
+        mul_div_valid_operation_check(self.dimension(), rhs.dimension());
         if self.alignment != rhs.alignment {
-            let mut matr = Matrix::splat(&T::from(0), (self.rows, rhs.rows), false, ROW_ALIGNED);
+            let mut matr = Matrix::splat(&T::zero(), (self.rows, rhs.rows), self.alignment.clone());
             for a in 0..self.rows {
                 for b in 0..rhs.rows {
-                    matr[a][b] += (self[a][b].clone() * rhs[b][a].clone().into()).into();
+                    matr[(a,b)] += (self[a][b].clone() * rhs[b][a].clone().into()).into();
                 }
             }
             matr
         } else {
-            let mut matr = Matrix::splat(&T::from(0), (self.rows, rhs.rows), false, ROW_ALIGNED);
+            let mut matr = Matrix::splat(&T::zero(), (self.rows, rhs.rows), self.alignment.clone());
             for a in 0..self.rows {
                 for b in 0..rhs.rows {
-                    matr[a][b] += (self[(a, b)].clone() * rhs[(b, a)].clone().into()).into();
+                    matr[(a,b)] += (self[(a, b)].clone() * rhs[(b, a)].clone().into()).into();
                 }
             }
             matr
@@ -241,53 +220,115 @@ impl<T, U> Mul<Matrix<U>> for Matrix<T>
     }
 }
 
-matrix_forward_ref_binop!{Mul, mul, Matrix<T>}
+impl<'a, T, U> Mul<&'a Matrix<U>> for Matrix<T>
+    where
+        T: AddAssign + Mul + MulAssign<T> + Clone + Zero,
+        U: Clone,
+        <T as Mul>::Output: Into<T>,
+        Matrix<T>: Mul<Matrix<U>>,
+        <Matrix<T> as Mul<Matrix<U>>>::Output: Into<Matrix<T>> {
+    type Output = Matrix<T>;
 
-impl<T, U> Div<Matrix<U>> for Matrix<T> where Matrix<U>: Inverse, Matrix<T>: Mul<Matrix<U>>, {
+    fn mul(self, rhs: &'a Matrix<U>) -> Self {
+        (self * rhs.clone()).into()
+    }
+}
+
+impl<'a, T, U> Mul<Matrix<U>> for &'a Matrix<T>
+    where
+        T: AddAssign + Mul + MulAssign<T> + Clone + Zero,
+        U: Clone,
+        <T as Mul>::Output: Into<T>,
+        Matrix<T>: Mul<Matrix<U>>,
+        <Matrix<T> as Mul<Matrix<U>>>::Output: Into<Matrix<T>> {
+    type Output = Matrix<T>;
+
+    fn mul(self, rhs: Matrix<U>) -> Self::Output {
+        (self.clone() * rhs).into()
+    }
+}
+
+impl<'a, 'b, T, U> Mul<&'b Matrix<U>> for &'a Matrix<T>
+    where
+        T: AddAssign + Mul + MulAssign<T> + Clone + Zero,
+        U: Clone,
+        <T as Mul>::Output: Into<T>,
+        Matrix<T>: Mul<Matrix<U>>,
+        <Matrix<T> as Mul<Matrix<U>>>::Output: Into<Matrix<T>> {
+    type Output = Matrix<T>;
+
+    fn mul(self, rhs: &'b Matrix<U>) -> Self::Output {
+        (self.clone() * rhs.clone()).into()
+    }
+}
+
+impl<T, U> Div<Matrix<U>> for Matrix<T>
+    where
+        Matrix<U>: Inverse,
+        Matrix<T>: Mul<Matrix<U>>,
+        <Matrix<T> as Mul<Matrix<U>>>::Output: Into<Matrix<T>> {
     type Output = Matrix<T>;
 
     fn div(self, rhs: Matrix<U>) -> Self {
-        mul_div_valid_operation_check(self.get_dimension(), rhs.get_dimension());
+        mul_div_valid_operation_check(self.dimension(), rhs.dimension());
         let inv = rhs.inverse();
-        self * inv
+        (self * inv).into()
     }
 }
 
 impl<'a, T, U> Div<&'a Matrix<U>> for Matrix<T>
-    where Matrix<U>: Inverse, Matrix<T>: Mul<Matrix<U>>, {
+    where
+        U: Clone,
+        Matrix<U>: Inverse,
+        Matrix<T>: Mul<Matrix<U>>,
+        <Matrix<T> as Mul<Matrix<U>>>::Output: Into<Matrix<T>> {
     type Output = Matrix<T>;
 
-    fn div(self, rhs: &'a Matrix<U>) -> Self {
-        self / rhs.clone()
+    fn div(self, rhs: &'a Matrix<U>) -> Matrix<T> {
+        mul_div_valid_operation_check(self.dimension(), rhs.dimension());
+        let inv = rhs.clone().inverse();
+        (self * inv).into()
     }
 }
 
 impl<'a, T, U> Div<Matrix<U>> for &'a Matrix<T>
-    where Matrix<U>: Inverse, Matrix<T>: Mul<Matrix<U>>, {
+    where
+        T: Clone,
+        Matrix<U>: Inverse,
+        Matrix<T>: Mul<Matrix<U>>,
+        <Matrix<T> as Mul<Matrix<U>>>::Output: Into<Matrix<T>> {
     type Output = Matrix<T>;
 
-    fn div(&'a self, rhs: Matrix<U>) -> Self {
-        self.clone() / rhs
+    fn div(self, rhs: Matrix<U>) -> Matrix<T> {
+        mul_div_valid_operation_check(self.dimension(), rhs.dimension());
+        let inv = rhs.inverse();
+        (self.clone() * inv).into()
     }
 }
 
 impl<'a, 'b, T, U> Div<&'b Matrix<U>> for &'a Matrix<T>
-    where Matrix<U>: Inverse, Matrix<T>: Mul<Matrix<U>>, {
+    where
+        T: Clone,
+        U: Clone,
+        Matrix<U>: Inverse,
+        Matrix<T>: Mul<Matrix<U>>,
+        <Matrix<T> as Mul<Matrix<U>>>::Output: Into<Matrix<T>> {
     type Output = Matrix<T>;
 
-    fn div(&'a self, rhs: &'b Matrix<U>) -> Self {
-        self.clone() / rhs.clone()
+    fn div(self, rhs: &'b Matrix<U>) -> Matrix<T> {
+        mul_div_valid_operation_check(self.dimension(), rhs.dimension());
+        let inv = rhs.clone().inverse();
+        (self.clone() * inv).into()
     }
 }
 
-macro_rules! matrix_forward_ref_op_assign {
-    ($imp:ident, $method:ident, $t:ty)  => {
-        impl<'a, T, U> $imp<&'a Matrix<U>> for Matrix<T>
-            where
-                T: $imp + Clone,
-                U: Into<T> + Clone, {
+macro_rules! matrix_operator_overload_assign_impl {
+    ($imp:ident, $method:ident, $tokens:tt) => {
+        impl<'a, T, U> $imp<&'a Matrix<U>> for Matrix<T> where
+            U: Clone,
+            Matrix<T>: $imp<Matrix<U>> {
             fn $method(&mut self, rhs: &'a Matrix<U>) {
-                $imp::method(self, rhs.clone());
+                *self $tokens rhs.clone()
             }
         }
     }
@@ -298,7 +339,7 @@ impl<T, U> AddAssign<Matrix<U>> for Matrix<T>
         T: AddAssign + Clone,
         U: Into<T> + Clone, {
     fn add_assign(&mut self, rhs: Matrix<U>) {
-        add_sub_valid_operation_check(self.get_dimension(), &rhs.get_dimension());
+        add_sub_valid_operation_check(self.dimension(), rhs.dimension());
         if self.alignment == rhs.alignment {
             for i in 0..self.rows {
                 for j in 0..self.columns {
@@ -315,15 +356,15 @@ impl<T, U> AddAssign<Matrix<U>> for Matrix<T>
     }
 }
 
-matrix_forward_ref_op_assign!{AddAssign, add_assign, Matrix<T>}
+matrix_operator_overload_assign_impl!{AddAssign, add_assign, +=}
 
 impl<T, U> SubAssign<Matrix<U>> for Matrix<T>
     where
         T: SubAssign + From<U>,
         U: SubAssign<T> + Clone + SubAssign<U>, {
     fn sub_assign(&mut self, rhs: Matrix<U>) {
-        add_sub_valid_operation_check(self.get_dimension(), rhs.get_dimension());
-        if self.alignemnt == rhs.alignment {
+        add_sub_valid_operation_check(self.dimension(), rhs.dimension());
+        if self.alignment == rhs.alignment {
             for i in 0..self.rows {
                 for j in 0..self.columns {
                     self[i][j] -= rhs[i][j].clone().into();
@@ -339,28 +380,28 @@ impl<T, U> SubAssign<Matrix<U>> for Matrix<T>
     }
 }
 
-matrix_forward_ref_op_assign!{SubAssign, sub_assign, Matrix<T>}
+matrix_operator_overload_assign_impl!{SubAssign, sub_assign, -=}
 
 impl<T, U> MulAssign<Matrix<U>> for Matrix<T>
     where
-        T: Add + AddAssign + Mul + MulAssign + Clone + From<i32>
+        T: Add + AddAssign + Mul + MulAssign + Clone + Zero
         + From<U> + From<<T as Mul<T>>::Output>,
         U: Mul<T> + Mul + Clone + Mul<U>, {
     fn mul_assign(&mut self, rhs: Matrix<U>) {
-        mul_div_valid_operation_check(self.get_dimension(), rhs.get_dimension());
+        mul_div_valid_operation_check(self.dimension(), rhs.dimension());
         if self.alignment != rhs.alignment {
-            let mut matr = Matrix::splat(&T::from(0), (self.rows, rhs.rows), false, ROW_ALIGNED);
+            let mut matr = Matrix::splat(&T::zero(), (self.rows, rhs.rows), self.alignment.clone());
             for a in 0..self.rows {
                 for b in 0..rhs.rows {
-                    matr[a][b] += (self[a][b].clone() + rhs[b][a].clone().into()).into();
+                    matr[(a, b)] += (self[a][b].clone() + rhs[b][a].clone().into()).into();
                 }
             }
             *self = matr;
         } else {
-            let mut matr = Matrix::splat(&T::from(0), (self.rows, rhs.rows), false, ROW_ALIGNED);
+            let mut matr = Matrix::splat(&T::zero(), (self.rows, rhs.rows), self.alignment.clone());
             for a in 0..self.rows {
                 for b in 0..rhs.rows {
-                    matr[a][b] += (self[(a, b)].clone() + rhs[(b, a)].clone().into()).into();
+                    matr[(a, b)] += (self[(a, b)].clone() + rhs[(b, a)].clone().into()).into();
                 }
             }
             *self = matr;
@@ -368,13 +409,15 @@ impl<T, U> MulAssign<Matrix<U>> for Matrix<T>
     }
 }
 
-matrix_forward_ref_op_assign!{MulAssign, mul_assign, Matrix<T>}
+matrix_operator_overload_assign_impl!{MulAssign, mul_assign, *=}
 
 impl<T, U> DivAssign<Matrix<U>> for Matrix<T>
     where Matrix<U>: Inverse, Matrix<T>: MulAssign<Matrix<U>>, {
     fn div_assign(&mut self, rhs: Matrix<U>) {
-        mul_div_valid_operation_check(self.get_dimension(), rhs.get_dimension());
+        mul_div_valid_operation_check(self.dimension(), rhs.dimension());
         let inv = rhs.inverse();
-        self *= inv;
+        *self *= inv;
     }
 }
+
+matrix_operator_overload_assign_impl!{DivAssign, div_assign, /=}

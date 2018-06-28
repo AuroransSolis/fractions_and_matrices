@@ -1,7 +1,9 @@
+use std::fmt::{Display, Debug, Formatter, Result};
+
 use matrices::matrix_base::{AugmentedMatrix, Matrix, MatrixError};
 
-impl<T: fmt::Debug> fmt::Debug for Matrix<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl<T: Debug> Debug for Matrix<T> {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         let mut matr = String::from(""); // Will contain string for entire matrix
         let mut longest_in_column: Vec<usize> = Vec::with_capacity(self.num_columns());
         for _ in 0..self.num_columns() {
@@ -40,8 +42,8 @@ impl<T: fmt::Debug> fmt::Debug for Matrix<T> {
     }
 }
 
-impl<T: fmt::Debug> fmt::Debug for AugmentedMatrix<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl<T: Debug> Debug for AugmentedMatrix<T> {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         let mut matr = String::from(""); // Will contain string for entire matrix
         let mut longest_in_column: Vec<usize> = Vec::with_capacity(self.num_columns());
         for _ in 0..self.num_columns() {
@@ -64,7 +66,7 @@ impl<T: fmt::Debug> fmt::Debug for AugmentedMatrix<T> {
                 for _ in 0..longest_in_column[b] - elem_string.len() {
                     spacer_left = format!("{}{}", spacer_left, " ");
                 }
-                if b == self.num_columns() - 1 && self.augmented {
+                if b == self.num_columns() - 1 {
                     line = format!("{}| {}{}", line, spacer_left, elem_string);
                 } else if b == self.num_columns() - 2 {
                     line = format!("{}{}{} ", line, spacer_left, elem_string);
@@ -82,8 +84,8 @@ impl<T: fmt::Debug> fmt::Debug for AugmentedMatrix<T> {
     }
 }
 
-impl<T: fmt::Display> fmt::Display for AugmentedMatrix<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl<T: Display> Display for AugmentedMatrix<T> {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         let mut matr = String::from(""); // Will contain string for entire matrix
         let mut longest_in_column: Vec<usize> = Vec::with_capacity(self.num_columns());
         for _ in 0..self.num_columns() {
@@ -91,8 +93,8 @@ impl<T: fmt::Display> fmt::Display for AugmentedMatrix<T> {
         }
         for a in 0..self.num_rows() {
             for b in 0..self.num_columns() {
-                if self.get_element_ref(a, b).to_string().len() > longest_in_column[b] {
-                    longest_in_column[b] = self.get_element_ref(a, b).to_string().len();
+                if self[(a, b)].to_string().len() > longest_in_column[b] {
+                    longest_in_column[b] = self[(a, b)].to_string().len();
                 }
             }
         }
@@ -109,11 +111,11 @@ impl<T: fmt::Display> fmt::Display for AugmentedMatrix<T> {
             // Add spacing to line up the right side of the numbers in each column
             for b in 0..self.num_columns() {
                 let mut spacer_left = String::from("");
-                let elem_string = self.get_element_ref(a, b).to_string();
+                let elem_string = self[(a, b)].to_string();
                 for _ in 0..longest_in_column[b] - elem_string.len() {
                     spacer_left = format!("{}{}", spacer_left, " ");
                 }
-                if b == self.num_columns() - 1 && self.augmented {
+                if b == self.num_columns() - 1 {
                     line = format!("{}| {}{}", line, spacer_left, elem_string);
                 } else if b == self.num_columns() - 2 {
                     line = format!("{}{}{} ", line, spacer_left, elem_string);
@@ -140,8 +142,8 @@ impl<T: fmt::Display> fmt::Display for AugmentedMatrix<T> {
     }
 }
 
-impl<T: fmt::Display> fmt::Display for Matrix<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl<T: Display> Display for Matrix<T> {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         let mut matr = String::from(""); // Will contain string for entire matrix
         let mut longest_in_column: Vec<usize> = Vec::with_capacity(self.num_columns());
         for _ in 0..self.num_columns() {
@@ -149,8 +151,8 @@ impl<T: fmt::Display> fmt::Display for Matrix<T> {
         }
         for a in 0..self.num_rows() {
             for b in 0..self.num_columns() {
-                if self.get_element_ref(a, b).to_string().len() > longest_in_column[b] {
-                    longest_in_column[b] = self.get_element_ref(a, b).to_string().len();
+                if self[(a, b)].to_string().len() > longest_in_column[b] {
+                    longest_in_column[b] = self[(a, b)].to_string().len();
                 }
             }
         }
@@ -167,7 +169,7 @@ impl<T: fmt::Display> fmt::Display for Matrix<T> {
             // Add spacing to line up the right side of the numbers in each column
             for b in 0..self.num_columns() {
                 let mut spacer_left = String::from("");
-                let elem_string = self.get_element_ref(a, b).to_string();
+                let elem_string = self[(a, b)].to_string();
                 for _ in 0..longest_in_column[b] - elem_string.len() {
                     spacer_left = format!("{}{}", spacer_left, " ");
                 }
@@ -193,35 +195,5 @@ impl<T: fmt::Display> fmt::Display for Matrix<T> {
             }
         }
         write!(f, "{}", matr)
-    }
-}
-
-impl<T> Matrix<T> {
-    pub fn print_augmented_solution(&self, variable_names: &Vec<&str>) -> Result<(), MatrixError> {
-        if !self.augmented {
-            return Err(MatrixError::FunctionError(
-                "Attempted to print solution for a non-augmented matrix as though it were."
-                    .to_string()
-            ));
-        }
-        if !self.check_ref() {
-            return Err(MatrixError::FunctionError("Matrix is not in REF form.".to_string()));
-        }
-        if !self.check_rref() {
-            println!("Matrix was not in RREF form. Attempting to solve RREF.");
-            let mut tmp = self.clone();
-            tmp.reduced_row_echelon_form(false);
-            if tmp.check_rref() {
-                return Err(MatrixError::FunctionError("Matrix unsolveable for RREF.".to_string()));
-            }
-            return tmp.print_augmented_solution(variable_names);
-        }
-        let mut res = format!("{} = {}", variable_names[0], self.matrix[0][self.dimension.1 - 1]);
-        for a in 1..variable_names.len() {
-            res = format!("{}\n{} = {}",
-                          res, variable_names[a], self.matrix[a][self.dimension.1 - 1]);
-        }
-        println!("{}", res);
-        Ok(())
     }
 }
