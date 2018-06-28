@@ -1,4 +1,4 @@
-use std::cmp;
+/*use std::cmp;
 
 use matrix_base::*;
 use matrices::matrix_base::{Matrix, MatrixError};
@@ -48,4 +48,6 @@ impl<T> Matrix<T> {
         }
         true
     }
-}
+}*/
+
+// On hold for now
