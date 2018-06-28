@@ -1,4 +1,3 @@
-#[macro_export]
 macro_rules! integer_into_frac {
     ($($t:ty)*) => ($(
         impl From<$t> for Fraction {
@@ -13,7 +12,6 @@ macro_rules! integer_into_frac {
     )*)
 }
 
-#[macro_export]
 macro_rules! into_frac_float {
     ($($t:ty)*) => ($(
         impl From<$t> for Fraction {
@@ -47,7 +45,6 @@ macro_rules! into_frac_float {
     )*)
 }
 
-#[macro_export]
 macro_rules! from_frac {
     ($($t:ty)*) => ($(
         impl From<Fraction> for $t {
@@ -256,7 +253,6 @@ macro_rules! impl_assign_arithmetic_with_frac {
 }
 
 // Implement all operator overloads from above
-#[macro_export]
 macro_rules! impl_arithmetic_with_frac {
     ($($target_type:ty)* ) => ($(
         impl_nonassign_arithmetic_with_frac!{$target_type}
