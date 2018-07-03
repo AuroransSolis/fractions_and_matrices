@@ -55,19 +55,30 @@ macro_rules! from_frac {
     )*)
 }
 
+/// Constructs a new Fraction.
+/// # Examples
+/// ```rust
+/// # #[macro_use] extern crate fractions_and_matrices::fractions::fractions;
+/// # fn main() {
+/// let two = fraction!(2);
+/// assert_eq!(two, Fraction { num: 2, den: 1, ud: false });
+///
+///let neg_four_fifths = fraction!(-4, 5);
+///assert_eq!(two, Fraction { num: -4, den: 5, ud: false});
+///# }
 #[macro_export]
 macro_rules! fraction {
-    ($($num:expr), *) => {{
+    ($num:expr) => {
         Fraction::from($num)
-    }};
+    };
 
-    ($($num:expr, $den:expr)*) => {{
+    ($num:expr, $den:expr) => {
         Fraction {
             num: $num as i64,
             den: $den as i64,
             ud: false
         }
-    }};
+    };
 }
 
 // Implement T + Fraction

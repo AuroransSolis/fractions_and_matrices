@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Rem, RemAssign, Neg};
 
-use fractions::fractions::{Fraction, get_lcm};
+use fractions::base::{Fraction, get_lcm};
 
 impl Neg for Fraction {
     type Output = Fraction;

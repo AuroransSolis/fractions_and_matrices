@@ -6,17 +6,13 @@ use std::ops::{Index, IndexMut, Range};
 use std::fmt;
 use std::mem::swap;
 
-use fractions::fractions::Fraction;
+use fractions::base::Fraction;
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Alignment {
     RowAligned,
     ColumnAligned
 }
-
-pub const ROW_ALIGNED: Alignment = Alignment::RowAligned;
-
-pub const COLUMN_ALIGNED: Alignment = Alignment::ColumnAligned;
 
 #[derive(Clone)]
 pub struct Matrix<T> {
@@ -41,8 +37,8 @@ macro_rules! matrix_index_methods {
 
             fn index<'a>(&'a self, index: (usize, usize)) -> &'a T {
                 match self.alignment {
-                    Alignment::RowAligned => &self.matrix[index.0 * self.num_columns() + index.1],
-                    Alignment::ColumnAligned => &self.matrix[index.0 * self.num_rows() + index.1]
+                    Alignment::RowAligned => &self[index.0][index.1],
+                    Alignment::ColumnAligned => &self[index.1][index.0]
                 }
             }
         }
@@ -103,23 +99,55 @@ macro_rules! matrix_base_impls {
 
             pub fn new(dimension: (usize, usize), alignment: Alignment) -> Self {
                 let matr: Vec<T> = Vec::with_capacity(dimension.0 * dimension.1);
-                $name {
-                    rows: dimension.0,
-                    columns: dimension.1,
-                    matrix: matr,
-                    alignment: alignment
+                if alignment == Alignment::RowAligned {
+                    $name {
+                        rows: dimension.0,
+                        columns: dimension.1,
+                        matrix: matr,
+                        alignment: alignment
+                    }
+                } else {
+                    $name {
+                        rows: dimension.1,
+                        columns: dimension.0,
+                        matrix: matr,
+                        alignment: alignment
+                    }
                 }
             }
 
-            fn in_place_transpose(&mut self) {
-                let mut tmp = vec![self[(0, 0)].clone(); self.rows * self.columns];
-                swap(&mut self.matrix, &mut tmp);
-                let mut cur_pos = 0;
-                for a in 0..self.dimension().1 {
-                    for b in 0..self.dimension().0 {
-                        swap(&mut self.matrix[cur_pos], &mut tmp[a + b * self.columns]);
-                        cur_pos += 1;
-                    }
+            pub fn new_from_vec(dimension: (usize, usize), vec: Vec<T>, alignment: Alignment)
+                -> Result<$target_type, MatrixError> {
+                if vec.len() != dimension.0 * dimension.1 {
+                    return Err(MatrixError::InitError("The supplied vec does not have the same \
+                    number of elements as the dimension specifies.".to_string()));
+                }
+                if alignment == Alignment::RowAligned {
+                    Ok($name {
+                        rows: dimension.0,
+                        columns: dimension.1,
+                        matrix: vec,
+                        alignment: alignment
+                    })
+                } else {
+                    Ok($name {
+                        rows: dimension.1,
+                        columns: dimension.0,
+                        matrix: vec,
+                        alignment: alignment
+                    })
+                }
+            }
+
+            pub fn set_matrix(&mut self, vec: Vec<T>) {
+                assert!(vec.len() % self.rows == 0 && vec.len() % self.columns == 0);
+                self.matrix = vec;
+            }
+
+            pub fn in_place_transpose(&mut self) {
+                match self.alignment {
+                    Alignment::RowAligned => self.column_align(),
+                    Alignment::ColumnAligned => self.row_align()
                 }
             }
 
@@ -127,9 +155,17 @@ macro_rules! matrix_base_impls {
                 match self.alignment {
                     Alignment::RowAligned => return,
                     Alignment::ColumnAligned => {
-                        self.in_place_transpose();
+                        let mut tmp = self.matrix.clone();
+                        let mut cur_pos = 0;
+                        for r in 0..self.num_rows() {
+                            for c in 0..self.num_columns() {
+                                swap(&mut self[(r, c)], &mut tmp[cur_pos]);
+                                cur_pos += 1;
+                            }
+                        }
+                        swap(&mut self.matrix, &mut tmp);
                         swap(&mut self.rows, &mut self.columns);
-                        self.alignment = Alignment::ColumnAligned;
+                        self.alignment = Alignment::RowAligned;
                     }
                 }
             }
@@ -137,9 +173,17 @@ macro_rules! matrix_base_impls {
             pub fn column_align(&mut self) {
                 match self.alignment {
                     Alignment::RowAligned => {
-                        self.in_place_transpose();
+                        let mut tmp = self.matrix.clone();
+                        let mut cur_pos = 0;
+                        for c in 0..self.num_columns() {
+                            for r in 0..self.num_rows() {
+                                swap(&mut self[(r, c)], &mut tmp[cur_pos]);
+                                cur_pos += 1;
+                            }
+                        }
+                        swap(&mut self.matrix, &mut tmp);
                         swap(&mut self.rows, &mut self.columns);
-                        self.alignment = Alignment::RowAligned;
+                        self.alignment = Alignment::ColumnAligned;
                     },
                     Alignment::ColumnAligned => return
                 }
@@ -147,7 +191,7 @@ macro_rules! matrix_base_impls {
         }
 
         impl<T> $target_type {
-            pub fn get_alignemt(&self) -> Alignment {
+            pub fn get_alignment(&self) -> Alignment {
                 match self.alignment {
                     Alignment::RowAligned => Alignment::RowAligned,
                     Alignment::ColumnAligned => Alignment::ColumnAligned
@@ -246,7 +290,7 @@ pub trait Unit {
 
 impl<T: PartialEq + Clone + Zero + One> Unit for Matrix<T> {
     fn unit(dimension: usize) -> Matrix<T> {
-        let mut res = Matrix::splat(&T::zero(), (dimension, dimension), ROW_ALIGNED);
+        let mut res = Matrix::splat(&T::zero(), (dimension, dimension), Alignment::RowAligned);
         for a in 0..res.rows {
             res[(a, a)] = T::one();
         }
@@ -280,7 +324,8 @@ impl<T: PartialEq + Clone + Zero + One> Unit for Matrix<T> {
 
 impl<T: PartialEq + Clone + Zero + One> Unit for AugmentedMatrix<T> {
     fn unit(dimension: usize) -> AugmentedMatrix<T> {
-        let mut res = AugmentedMatrix::splat(&T::zero(), (dimension, dimension + 1), ROW_ALIGNED);
+        let mut res = AugmentedMatrix::splat(&T::zero(), (dimension, dimension + 1),
+                                             Alignment::RowAligned);
         for a in 0..res.rows {
             res[(a, a)] = T::one();
         }

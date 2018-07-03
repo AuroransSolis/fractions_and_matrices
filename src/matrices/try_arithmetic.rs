@@ -3,8 +3,8 @@ use num::{Zero, One};
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign};
 use std::mem::swap;
 
-use matrices::matrix_base::{Matrix, MatrixError};
-use matrices::matrix_transforms::Inverse;
+use matrices::base::{Matrix, MatrixError};
+use matrices::transforms::Inverse;
 
 trait TryAddMatrices<Other = Self> {
     type Output;

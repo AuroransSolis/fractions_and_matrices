@@ -51,8 +51,9 @@ impl Fraction {
         self.simplify()
     }
 
-    // Probably the most overused function in this module :^)
+    ///
     pub fn simplify(mut self) -> Fraction {
+        // Probably the most overused function in this module :^)
         // 0/0 is a valid non-undefined state - for instance 1/2 - 1/2 produces 0/0. Set it to 0/1,
         // keep it defined, and move on.
         if self.num == 0 && self.den == 0  && !self.ud {

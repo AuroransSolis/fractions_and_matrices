@@ -6,7 +6,7 @@ use std::fmt::{Debug, Display};
 use std::mem::swap;
 use std::marker::Sized;
 
-use matrices::matrix_base::{Matrix, AugmentedMatrix, MatrixError, Unit};
+use matrices::base::{Matrix, AugmentedMatrix, MatrixError, Unit};
 
 pub trait RowOpAdd {
     fn row_op_add(&mut self, target: usize, tool: usize);

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use std::fmt;
-use matrices::matrix_base::{AugmentedMatrix, Matrix};
+use matrices::base::{AugmentedMatrix, Matrix};
 
 pub enum Separator {
     Plus,

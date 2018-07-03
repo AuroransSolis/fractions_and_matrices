@@ -1,6 +1,6 @@
 use std::fmt::{Display, Debug, Formatter, Result};
 
-use matrices::matrix_base::{AugmentedMatrix, Matrix, MatrixError};
+use matrices::base::{AugmentedMatrix, Matrix, MatrixError};
 
 impl<T: Debug> Debug for Matrix<T> {
     fn fmt(&self, f: &mut Formatter) -> Result {
@@ -37,8 +37,8 @@ impl<T: Debug> Debug for Matrix<T> {
                 matr = format!("{}{}\n", matr, line);
             }
         }
-        write!(f, "{}", format!("Dimension: ({}, {})\n{}", self.num_rows(),
-                                self.num_columns(), matr))
+        write!(f, "{}", format!("Dimension: ({}, {}), alignment: {:?}\n{}", self.num_rows(),
+                                self.num_columns(), self.alignment, matr))
     }
 }
 
@@ -79,8 +79,8 @@ impl<T: Debug> Debug for AugmentedMatrix<T> {
                 matr = format!("{}{}\n", matr, line);
             }
         }
-        write!(f, "{}", format!("Dimension: ({}, {})\n{}", self.num_rows(),
-                                self.num_columns(), matr))
+        write!(f, "{}", format!("Dimension: ({}, {}), alignment: {:?}\n{}", self.num_rows(),
+                                self.num_columns(), self.alignment, matr))
     }
 }
 

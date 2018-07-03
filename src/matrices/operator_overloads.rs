@@ -2,11 +2,12 @@ use num::Zero;
 
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Range};
 use std::cmp::PartialEq;
+use std::fmt::Display;
 
-use matrices::matrix_base::{AugmentedMatrix, Matrix, Alignment};
-use matrices::matrix_transforms::Inverse;
+use matrices::base::{AugmentedMatrix, Matrix, Alignment};
+use matrices::transforms::Inverse;
 
-impl<T: PartialEq> PartialEq for Matrix<T> {
+impl<T: PartialEq + Display> PartialEq for Matrix<T> {
     fn eq(&self, other: &Matrix<T>) -> bool {
         if self.num_columns() != other.num_columns() {
             return false;

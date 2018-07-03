@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use fractions::fractions::{Fraction, get_lcm};
+use fractions::base::{Fraction, get_lcm};
 
 impl Eq for Fraction {}
 
