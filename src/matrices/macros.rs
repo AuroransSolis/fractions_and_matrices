@@ -5,72 +5,49 @@ macro_rules! matrix {
     ($($($val:expr) *);*) => {{
         let mut matr = Vec::new();
         let mut lens = Vec::new();
-            $(
-            let mut rc = Vec::new();
-            $(
-                rc.push($val);
-            )*
+        $(
+            let rc = [$($val),*];
             for l in &lens {
                 if rc.len() != *l {
                     panic!("A row/column had an incorrect number of elements.");
                 }
             }
             lens.push(rc.len());
-            matr.append(&mut rc);
+            matr.extend_from_slice(&rc);
         )*
-        Matrix {
-            rows: matr.len() / lens[0],
-            columns: lens[0],
-            matrix: matr,
-            alignment: RowAligned
-        }
+        let mut res = Matrix::new((matr.len() / lens[0], lens[0]), RowAligned);
+        res.set_matrix(matr);
+        res
     }};
 }
 
 #[macro_export]
 macro_rules! augmented_matrix {
-    ([$($($val:expr) * => $sol_val:expr);* => $($sol_val:expr),*], $alignment:expr) => {
+    ($($($val:expr) * => $sol_val:expr);*) => {{
         let mut matr = Vec::new();
         let mut lens = Vec::new();
         let mut solution_column = Vec::new();
         $(
-            let mut rc = Vec::new();
-            $(
-                rc.push($val);
-            )*
+            let rc = [$($val),*];
+            solution_column.push($sol_val);
             for l in &lens {
                 if rc.len() != *l {
                     panic!("A row/column had an incorrect number of elements.");
                 }
             }
             lens.push(rc.len());
-            matr.append(&mut rc);
-        )*
-        $(
-            solution_column.push($sol_val);
+            matr.extend_from_slice(&rc);
         )*
         if solution_column.len() != matr.len() / lens[0] {
             panic!("Solution column had an incorrect number of elements.");
         } else {
-            if $alignment == RowAligned {
-                for r in (0..solution_column.len()).rev() {
-                    matr.insert(r * lens[0], solution_column[r]);
-                }
-                Matrix {
-                    rows: solution_column.len(),
-                    columns: lens[0],
-                    matrix: matr,
-                    alignment: $alignment
-                }
-            } else {
-                matr.append(solution_column);
-                Matrix {
-                    rows: lens[0],
-                    columns: solution_column.len(),
-                    matrix: matr,
-                    alignment: $alignment
-                }
+            matr.push(solution_column[solution_column.len() - 1]);
+            for r in (0..solution_column.len()).rev().skip(1) {
+                matr.insert((r + 1) * lens[0], solution_column[r]);
             }
+            let mut res = AugmentedMatrix::new((solution_column.len(), lens[0] + 1), RowAligned);
+            res.set_matrix(matr);
+            res
         }
-    }
+    }};
 }

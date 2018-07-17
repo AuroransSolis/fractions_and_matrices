@@ -28,7 +28,8 @@ impl<T: Into<Fraction> + From<Fraction>> Add<T> for Fraction {
         if self.den == r.den || (0 - self.den == r.den && r.num < 0) {
             let mut s = self.clone();
             s.num += r.num;
-            s.simplify()
+            s.simplify();
+            s
         } else {
             let mut s = self.clone();
             let lcm = get_lcm(s.den, r.den) as i64;
@@ -37,7 +38,8 @@ impl<T: Into<Fraction> + From<Fraction>> Add<T> for Fraction {
             s.num *= self_mult;
             s.num += r.num * r_mult;
             s.den = lcm;
-            s.simplify()
+            s.simplify();
+            s
         }
     }
 }
@@ -78,7 +80,8 @@ impl<T: Into<Fraction> + From<Fraction>> Sub<T> for Fraction {
         if self.den == r.den || (0 - self.den == r.den && r.num < 0) {
             let mut s = self.clone();
             s.num += r.num;
-            s.simplify()
+            s.simplify();
+            s
         } else {
             let mut s = self.clone();
             let lcm = get_lcm(s.den, r.den) as i64;
@@ -87,7 +90,8 @@ impl<T: Into<Fraction> + From<Fraction>> Sub<T> for Fraction {
             s.num *= self_mult;
             s.num += r.num * r_mult;
             s.den = lcm;
-            s.simplify()
+            s.simplify();
+            s
         }
     }
 }

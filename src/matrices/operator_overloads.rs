@@ -7,24 +7,30 @@ use std::fmt::Display;
 use matrices::base::{AugmentedMatrix, Matrix, Alignment};
 use matrices::transforms::Inverse;
 
-impl<T: PartialEq + Display> PartialEq for Matrix<T> {
-    fn eq(&self, other: &Matrix<T>) -> bool {
-        if self.num_columns() != other.num_columns() {
-            return false;
-        }
-        if self.num_rows() != other.num_rows() {
-            return false;
-        }
-        for i in 0..self.num_rows() {
-            for j in 0..self.num_columns() {
-                if self[(i, j)] != other[(i, j)] {
+macro_rules! partial_eq_impl {
+    ($($target_type:ty | $ref_target_type:ty),*) => ($(
+        impl<T: PartialEq + Display> PartialEq for $target_type {
+            fn eq(&self, other: $ref_target_type) -> bool {
+                if self.num_columns() != other.num_columns() {
                     return false;
                 }
+                if self.num_rows() != other.num_rows() {
+                    return false;
+                }
+                for i in 0..self.num_rows() {
+                    for j in 0..self.num_columns() {
+                        if self[(i, j)] != other[(i, j)] {
+                            return false;
+                        }
+                    }
+                }
+                true
             }
         }
-        true
-    }
+    )*)
 }
+
+partial_eq_impl!{Matrix<T> | &Matrix<T>, AugmentedMatrix<T> | &AugmentedMatrix<T>}
 
 fn valid_operation_check(d1: (usize, usize), d2: (usize, usize), ) {
     if d1.0 == 0 {

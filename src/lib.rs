@@ -7,9 +7,40 @@ pub extern crate num;
 
 #[cfg(test)]
 mod tests {
-    use fractions::*;
+    use fractions::base::Fraction;
     use matrices::base::{Matrix, AugmentedMatrix, Alignment::{ColumnAligned, RowAligned}};
     use matrices::extras::*;
+    
+    #[test]
+    fn index_methods_test() {
+        let mut foo: Matrix<i32> = matrix![
+             0  1  2  3;
+             4  5  6  7;
+             8  9 10 11;
+            12 13 14 15
+        ];
+        assert_eq!(foo[0], [0, 1, 2, 3]);
+        assert_eq!(foo[0..2], [0, 1, 2, 3, 4, 5, 6, 7]);
+        assert_eq!(foo[0][0], 0);
+        assert_eq!(foo[0][3], 3);
+        assert_eq!(foo[3][3], 15);
+        assert_eq!(foo[3][0], 12);
+        assert_eq!(foo[(0, 0)], 0);
+        assert_eq!(foo[(0, 3)], 3);
+        assert_eq!(foo[(3, 3)], 15);
+        assert_eq!(foo[(3, 0)], 12);
+        foo.column_align();
+        assert_eq!(foo[0], [0, 4, 8, 12]);
+        assert_eq!(foo[0..2], [0, 4, 8, 12, 1, 5, 9, 13]);
+        assert_eq!(foo[0][0], 0);
+        assert_eq!(foo[0][3], 12);
+        assert_eq!(foo[3][3], 15);
+        assert_eq!(foo[3][0], 3);
+        assert_eq!(foo[(0, 0)], 0);
+        assert_eq!(foo[(0, 3)], 3);
+        assert_eq!(foo[(3, 3)], 15);
+        assert_eq!(foo[(3, 0)], 12);
+    }
 
     #[test]
     fn partial_eq_test() {

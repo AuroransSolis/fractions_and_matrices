@@ -45,12 +45,12 @@ impl<T: Debug> Debug for Matrix<T> {
 impl<T: Debug> Debug for AugmentedMatrix<T> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         let mut matr = String::from(""); // Will contain string for entire matrix
-        let mut longest_in_column: Vec<usize> = Vec::with_capacity(self.num_columns());
-        for _ in 0..self.num_columns() {
+        let mut longest_in_column: Vec<usize> = Vec::with_capacity(self.num_columns() + 1);
+        for _ in 0..self.num_columns() + 1 {
             longest_in_column.push(0);
         }
         for a in 0..self.num_rows() {
-            for b in 0..self.num_columns() {
+            for b in 0..self.num_columns() + 1 {
                 if format!("{:?}", self[(a, b)]).len() > longest_in_column[b] {
                     longest_in_column[b] = format!("{:?}", self[(a, b)]).len();
                 }
@@ -60,15 +60,15 @@ impl<T: Debug> Debug for AugmentedMatrix<T> {
             let mut line = format!("Row {}: ", a); // String for each individual line
             // Add the appropriate character for the section of the bracket at the start of each line
             // Add spacing to line up the right side of the numbers in each column
-            for b in 0..self.num_columns() {
+            for b in 0..self.num_columns() + 1 {
                 let mut spacer_left = String::from("");
                 let elem_string = format!("{:?}", self[(a, b)]);
                 for _ in 0..longest_in_column[b] - elem_string.len() {
                     spacer_left = format!("{}{}", spacer_left, " ");
                 }
-                if b == self.num_columns() - 1 {
+                if b == self.num_columns() {
                     line = format!("{}| {}{}", line, spacer_left, elem_string);
-                } else if b == self.num_columns() - 2 {
+                } else if b == self.num_columns() - 1 {
                     line = format!("{}{}{} ", line, spacer_left, elem_string);
                 } else {
                     line = format!("{}{}{}, ", line, spacer_left, elem_string);
@@ -80,19 +80,19 @@ impl<T: Debug> Debug for AugmentedMatrix<T> {
             }
         }
         write!(f, "{}", format!("Dimension: ({}, {}), alignment: {:?}\n{}", self.num_rows(),
-                                self.num_columns(), self.alignment, matr))
+                                self.num_columns() + 1, self.alignment, matr))
     }
 }
 
 impl<T: Display> Display for AugmentedMatrix<T> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         let mut matr = String::from(""); // Will contain string for entire matrix
-        let mut longest_in_column: Vec<usize> = Vec::with_capacity(self.num_columns());
-        for _ in 0..self.num_columns() {
+        let mut longest_in_column: Vec<usize> = Vec::with_capacity(self.num_columns() + 1);
+        for _ in 0..self.num_columns() + 1 {
             longest_in_column.push(0);
         }
         for a in 0..self.num_rows() {
-            for b in 0..self.num_columns() {
+            for b in 0..self.num_columns() + 1 {
                 if self[(a, b)].to_string().len() > longest_in_column[b] {
                     longest_in_column[b] = self[(a, b)].to_string().len();
                 }
@@ -109,15 +109,15 @@ impl<T: Display> Display for AugmentedMatrix<T> {
                 line = format!("⎢ {}", line);
             }
             // Add spacing to line up the right side of the numbers in each column
-            for b in 0..self.num_columns() {
+            for b in 0..self.num_columns() + 1 {
                 let mut spacer_left = String::from("");
                 let elem_string = self[(a, b)].to_string();
                 for _ in 0..longest_in_column[b] - elem_string.len() {
                     spacer_left = format!("{}{}", spacer_left, " ");
                 }
-                if b == self.num_columns() - 1 {
+                if b == self.num_columns() {
                     line = format!("{}| {}{}", line, spacer_left, elem_string);
-                } else if b == self.num_columns() - 2 {
+                } else if b == self.num_columns() - 1 {
                     line = format!("{}{}{} ", line, spacer_left, elem_string);
                 } else {
                     line = format!("{}{}{}  ", line, spacer_left, elem_string);

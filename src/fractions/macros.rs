@@ -2,11 +2,13 @@ macro_rules! integer_into_frac {
     ($($t:ty)*) => ($(
         impl From<$t> for Fraction {
             fn from(num: $t) -> Self {
-                Fraction {
+                let mut s =  Fraction {
                     num: num as i64,
                     den: 1,
                     ud: false
-                }.simplify()
+                };
+                s.simplify();
+                s
             }
         }
     )*)
