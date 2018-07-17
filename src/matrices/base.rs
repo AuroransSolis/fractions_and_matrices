@@ -182,8 +182,13 @@ macro_rules! matrix_base_impls {
                     Alignment::ColumnAligned => {
                         let mut tmp = self.matrix.clone();
                         let mut cur_pos = 0;
+                        let n = if self.is_row_aligned() {
+                            self.columns
+                        } else {
+                            self.rows
+                        };
                         for r in 0..self.num_rows() {
-                            for c in 0..self.num_columns() {
+                            for c in 0..n {
                                 swap(&mut self[(r, c)], &mut tmp[cur_pos]);
                                 cur_pos += 1;
                             }
@@ -201,7 +206,12 @@ macro_rules! matrix_base_impls {
                     Alignment::RowAligned => {
                         let mut tmp = self.matrix.clone();
                         let mut cur_pos = 0;
-                        for c in 0..self.num_columns() {
+                        let n = if self.is_row_aligned() {
+                            self.columns
+                        } else {
+                            self.rows
+                        };
+                        for c in 0..n {
                             for r in 0..self.num_rows() {
                                 swap(&mut self[(r, c)], &mut tmp[cur_pos]);
                                 cur_pos += 1;
@@ -252,7 +262,7 @@ macro_rules! matrix_base_impls {
 
         impl<T: PartialEq> $target_type {
             #[doc = $exactly_equal_doc_expr]
-            pub fn exactly_equal_to(&self, other: &Matrix<T>) -> bool {
+            pub fn exactly_equal_to(&self, other: &Self) -> bool {
                 if self.alignment != other.alignment {
                     return false;
                 }
@@ -356,13 +366,84 @@ matrix_base_impls!{AugmentedMatrix<T>, AugmentedMatrix,
         .unwrap();
     assert_eq!(foo, bar);
     ```",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    ""
+    "Row-aligns an augmented matrix. If it is already row-aligned, then nothing happens.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{AugmentedMatrix,
+    #    Alignment::{RowAligned, ColumnAligned}};
+    let mut foo = AugmentedMatrix::new_from_vec((5, 5), vec![0, 5, 10, 15, 20, 1, 6, 11, 16, 21, 2, 7, 12,
+        17, 22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24], ColumnAligned).unwrap();
+    let bar = augmented_matrix![
+         0  1  2  3  => 4;
+         5  6  7  8  => 9;
+        10 11 12 13 => 14;
+        15 16 17 18 => 19;
+        20 21 22 23 => 24
+    ];
+    foo.row_align();
+    assert!(foo.exactly_equal_to(&bar));
+    ```",
+    "Column-aligns an augmented matrix. If it is already column-aligned, then nothing happens.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{AugmentedMatrix,
+    #    Alignment::{RowAligned, ColumnAligned}};
+    let mut foo = augmented_matrix![
+         0  1  2  3  => 4;
+         5  6  7  8  => 9;
+        10 11 12 13 => 14;
+        15 16 17 18 => 19;
+        20 21 22 23 => 24
+    ];
+    let bar = AugmentedMatrix::new_from_vec((5, 5), vec![0, 5, 10, 15, 20, 1, 6, 11, 16, 21, 2, 7,
+        12, 17, 22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24], ColumnAligned).unwrap();
+    foo.column_align();
+    assert!(foo.exactly_equal_to(&bar));
+    ```",
+    "Gets the alignment of a given augmented matrix.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{AugmentedMatrix,
+    #    Alignment::{RowAligned, ColumnAligned}};
+    let foo = augmented_matrix![
+        0 1 => 0;
+        2 3 => 1
+    ];
+    assert_eq!(foo.get_alignment(), RowAligned);
+    ```",
+    "Gets the number of rows in a given augmented matrix.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{AugmentedMatrix,
+    #    Alignment::{RowAligned, ColumnAligned}};
+    let foo = augmented_matrix![
+        0 1 2 3 => 0;
+        4 5 6 7 => 1
+    ];
+    assert_eq!(foo.num_rows(), 2);
+    ```",
+    "Determines whether a matrix is row-aligned or not.",
+    "Determines whether a matrix is column-aligned or not.",
+    "Tests whether a matrix is exactly equal to another, taking alignment into account.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{AugmentedMatrix,
+    #    Alignment::{RowAligned, ColumnAligned}};
+    let foo = augmented_matrix![
+         0  1  2  3 =>  4;
+         5  6  7  8 =>  9;
+        10 11 12 13 => 14
+    ];
+    let mut bar = foo.clone();
+    assert!(foo.exactly_equal_to(&bar));
+    bar.column_align();
+    assert!(!foo.exactly_equal_to(&bar));
+    ```"
 };
 Matrix<T>, Matrix,
 {
@@ -451,36 +532,92 @@ Matrix<T>, Matrix,
     ```rust
     # #[macro_use] extern crate fractions_and_matrices;
     # use fractions_and_matrices::matrices::base::{Matrix, Alignment::{RowAligned, ColumnAligned}};
-    let foo = Matrix::new_from_vec((5, 5), vec![0, 5, 10, 15, 20, 1, 6, 11, 16, 21, 2, 7, 12, 17,
-        22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24], ColumnAligned).unwrap();
-    let mut bar = foo.clone();
-    bar.row_align();
-    assert_eq!(foo[0][0], bar[0][0]);
-    assert_eq!(foo[0][4], bar[4][0]);
-    assert_eq!(foo[4][4], bar[4][4]);
-    assert_eq!(foo[4][0], bar[0][4]);
-    assert_eq!(foo, bar);
+    let mut foo = Matrix::new_from_vec((5, 5), vec![0, 5, 10, 15, 20, 1, 6, 11, 16, 21, 2, 7, 12,
+        17, 22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24], ColumnAligned).unwrap();
+    let bar = matrix![
+         0  1  2  3  4;
+         5  6  7  8  9;
+        10 11 12 13 14;
+        15 16 17 18 19;
+        20 21 22 23 24
+    ];
+    foo.row_align();
+    assert!(foo.exactly_equal_to(&bar));
     ```",
-    "",
-    "",
-    "",
-    "",
-    "",
-    ""
+    "Column-aligns a matrix. If a matrix is already column-aligned, then nothing happens.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{Matrix, Alignment::{RowAligned, ColumnAligned}};
+    let mut foo = matrix![
+         0  1  2  3  4;
+         5  6  7  8  9;
+        10 11 12 13 14;
+        15 16 17 18 19;
+        20 21 22 23 24
+    ];
+    let bar = Matrix::new_from_vec((5, 5), vec![0, 5, 10, 15, 20, 1, 6, 11, 16, 21, 2, 7, 12, 17,
+        22, 3, 8, 13, 18, 23, 4, 9, 14, 19, 24], ColumnAligned).unwrap();
+    foo.column_align();
+    assert!(foo.exactly_equal_to(&bar));
+    ```",
+    "Gets the alignment of a given matrix.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{Matrix, Alignment::{RowAligned, ColumnAligned}};
+    let foo = matrix![
+        0 1;
+        2 3
+    ];
+    assert_eq!(foo.get_alignment(), RowAligned);
+    ```",
+    "Gets the number of rows in a given matrix.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{Matrix, Alignment::{RowAligned, ColumnAligned}};
+    let foo = matrix![
+        0 1 2 3;
+        4 5 6 7
+    ];
+    assert_eq!(foo.num_rows(), 2);
+    ```",
+    "Determines whether a matrix is row-aligned or not.",
+    "Determines whether a matrix is column-aligned or not.",
+    "Tests whether a matrix is exactly equal to another, taking alignment into account.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{Matrix, Alignment::{RowAligned, ColumnAligned}};
+    let foo = matrix![
+         0  1  2  3  4;
+         5  6  7  8  9;
+        10 11 12 13 14
+    ];
+    let mut bar = foo.clone();
+    assert!(foo.exactly_equal_to(&bar));
+    bar.column_align();
+    assert!(!foo.exactly_equal_to(&bar));
+    ```"
 }}
 
 impl<T> Matrix<T> {
-    /// Gets the dimension of a given matrix as a `(usize, usize)` tuple.
+    /// Gets the dimension of a given matrix as a `(usize, usize)` tuple. The result is the same
+    /// regardless of alignment.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
     /// # use fractions_and_matrices::matrices::base::{Matrix, Alignment::RowAligned};
     /// let foo = matrix![
-    ///     0 1 2;
-    ///     3 4 5;
-    ///     6 7 8
+    ///      0  1  2  3;
+    ///      4  5  6  7;
+    ///      8  9 10 11
     /// ];
-    /// assert_eq!(foo.dimension(), (3, 3));
+    /// assert_eq!(foo.dimension(), (3, 4));
+    /// let mut bar = foo.clone();
+    /// bar.column_align();
+    /// assert_eq!(foo.dimension(), bar.dimension());
     /// ```
     pub fn dimension(&self) -> (usize, usize) {
         match self.alignment {
