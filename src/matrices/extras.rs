@@ -3,6 +3,22 @@ use std::ops::Range;
 use matrices::base::{AugmentedMatrix, Matrix, MatrixError};
 
 impl<T> Matrix<T> {
+    /// Remove the last column from a matrix, like `pop()` for vectors.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// use fractions_and_matrices::matrices::base::{Matrix, Alignment::RowAligned};
+    /// let mut foo = matrix![
+    ///     0 1 2;
+    ///     3 4 5
+    /// ];
+    /// foo.pop_column();
+    /// let bar = matrix![
+    ///     0 1;
+    ///     3 4
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// ```
     pub fn pop_column(&mut self) {
         if self.is_column_aligned() {
             for _ in 0..self.rows {
@@ -10,15 +26,37 @@ impl<T> Matrix<T> {
             }
             self.rows -= 1;
         } else {
-            for c in 0..self.num_rows() {
-                self.matrix.remove((self.columns - 1) * self.rows + c);
+            for c in (1..self.num_rows() + 1).rev() {
+                self.matrix.remove(self.columns * c - 1);
             }
             self.columns -= 1;
         }
     }
 
+    /// Removes a column from a matrix.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{Matrix, Alignment::RowAligned};
+    /// let mut foo = matrix![
+    ///      0  1  2  3  4;
+    ///      5  6  7  8  9;
+    ///     10 11 12 13 14;
+    ///     15 16 17 18 19;
+    ///     20 21 22 23 24
+    /// ];
+    /// foo.remove_column(2);
+    /// let bar = matrix![
+    ///      0  1  3  4;
+    ///      5  6  8  9;
+    ///     10 11 13 14;
+    ///     15 16 18 19;
+    ///     20 21 23 24
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// ```
     pub fn remove_column(&mut self, column: usize) {
-        if column == self.rows {
+        if column == self.num_rows() {
             self.pop_column();
             return;
         }
@@ -26,8 +64,8 @@ impl<T> Matrix<T> {
             self.matrix.drain(column * self.rows..(column + 1) * self.rows);
             self.rows -= 1;
         } else {
-            for r in 0..self.num_rows() {
-                self.matrix.remove(r * self.columns + r);
+            for r in (0..self.num_rows()).rev() {
+                self.matrix.remove(r * self.columns + column);
             }
             self.columns -= 1;
         }
@@ -35,15 +73,29 @@ impl<T> Matrix<T> {
 }
 
 impl<T> AugmentedMatrix<T> {
+    pub fn pop_column(&mut self) {
+        if self.is_column_aligned() {
+            for _ in 0..self.rows {
+                drop(self.matrix.pop());
+            }
+            self.rows -= 1;
+        } else {
+            for c in (1..self.num_rows() + 1).rev() {
+                self.matrix.remove(self.columns * c - 1);
+            }
+            self.columns -= 1;
+        }
+    }
+
     pub fn remove_column(&mut self, column: usize) {
-        if column == self.rows {
+        if column == self.num_rows() {
             return;
         }
         if self.is_column_aligned() {
             self.matrix.drain(column * self.rows..(column + 1) * self.rows);
             self.rows -= 1;
         } else {
-            for r in 0..self.num_rows() {
+            for r in (0..self.num_rows()).rev() {
                 self.matrix.remove(r * self.columns + r);
             }
             self.columns -= 1;

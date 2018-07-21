@@ -648,6 +648,17 @@ impl<T> Matrix<T> {
 impl<T> AugmentedMatrix<T> {
     /// Gets the dimension of a given `AugmentedMatrix<T>` as a `(usize, usize)` tuple. NB: the
     /// returned dimension does not include the solution column.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned};
+    /// let foo = augmented_matrix![
+    ///     0 1 2 => 0;
+    ///     3 4 5 => 1;
+    ///     6 7 8 => 2
+    /// ];
+    /// assert_eq!(foo.dimension(), (3, 3));
+    /// ```
     pub fn dimension(&self) -> (usize, usize) {
         match self.alignment {
             Alignment::RowAligned => (self.rows, self.columns - 1),
@@ -657,6 +668,17 @@ impl<T> AugmentedMatrix<T> {
 
     /// Gets the number of columns in a given augmented matrix. NB: the returned value does not
     /// include the solution column.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned};
+    /// let foo = augmented_matrix![
+    ///     0 1 => 2;
+    ///     3 4 => 5;
+    ///     6 7 => 8
+    /// ];
+    /// assert_eq!(foo.num_columns(), 2);
+    /// ```
     pub fn num_columns(&self) -> usize {
         match self.alignment {
             Alignment::RowAligned => self.columns - 1,
@@ -820,10 +842,63 @@ impl<T: PartialEq + Clone + Zero + One> Unit for AugmentedMatrix<T> {
         res
     }
 
+    /// Basically just a convenience check to see whether the number of rows and columns are equal.
+    /// # Examples
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned,
+    /// #    Unit};
+    /// let foo = augmented_matrix![
+    ///     1 0 0 => 0;
+    ///     0 1 0 => 0;
+    ///     0 0 1 => 0
+    /// ];
+    /// assert!(foo.is_unit_dimension());
+    /// ```
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned,
+    /// #    Unit};
+    /// let foo = augmented_matrix![
+    ///     1 0 0 0 => 0;
+    ///     0 1 0 0 => 0;
+    ///     0 0 1 0 => 0
+    /// ];
+    /// assert!(!foo.is_unit_dimension());
+    /// ```
     fn is_unit_dimension(&self) -> bool {
-        self.rows + 1 == self.columns
+        let d = self.dimension();
+        d.0 == d.1
     }
 
+    /// Tests to see whether the augmented matrix (excluding the solution column) is a unit matrix.
+    /// # Examples
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned,
+    /// #    Unit};
+    /// let foo = augmented_matrix![
+    ///     1 0 0 0 0 => 0;
+    ///     0 1 0 0 0 => 1;
+    ///     0 0 1 0 0 => 2;
+    ///     0 0 0 1 0 => 3;
+    ///     0 0 0 0 1 => 4
+    /// ];
+    /// assert!(foo.is_unit());
+    /// ```
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned,
+    /// #    Unit};
+    /// let foo = augmented_matrix![
+    ///      0  1  2  3  4 => 0;
+    ///      5  6  7  8  9 => 1;
+    ///     10 11 12 13 14 => 2;
+    ///     15 16 17 18 19 => 3;
+    ///     20 21 22 23 24 => 4
+    /// ];
+    /// assert!(!foo.is_unit());
+    /// ```
     fn is_unit(&self) -> bool {
         if !self.is_unit_dimension() {
             return false;
