@@ -56,7 +56,81 @@ impl<T> Matrix<T> {
     /// assert_eq!(foo, bar);
     /// ```
     pub fn remove_column(&mut self, column: usize) {
-        if column == self.num_rows() {
+        if column == self.num_columns() {
+            self.pop_column();
+            return;
+        }
+        if self.is_column_aligned() {
+            self.matrix.drain(column * self.rows..(column + 1) * self.rows);
+            self.rows -= 1;
+        } else {
+            for r in (0..self.num_rows()).rev() {
+                println!("Removing index: {}", r);
+                self.matrix.remove(r * self.columns + column);
+            }
+            self.columns -= 1;
+        }
+    }
+}
+
+impl<T> AugmentedMatrix<T> {
+    /// Removes the last column from an augmented matrix, similarly to `pop()` for vectors.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned};
+    /// let mut foo = augmented_matrix![
+    ///      0  1  2  3 => 0;
+    ///      4  5  6  7 => 1;
+    ///      8  9 10 11 => 2;
+    ///     12 13 14 15 => 3
+    /// ];
+    /// foo.pop_column();
+    /// let bar = augmented_matrix![
+    ///      0  1  2 => 0;
+    ///      4  5  6 => 1;
+    ///      8  9 10 => 2;
+    ///     12 13 14 => 3
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// ```
+    pub fn pop_column(&mut self) {
+        if self.is_column_aligned() {
+            for _ in 0..self.rows {
+                drop(self.matrix.pop());
+            }
+            self.rows -= 1;
+        } else {
+            for c in (1..self.num_rows() + 1).rev() {
+                self.matrix.remove(self.columns * c - 1);
+            }
+            self.columns -= 1;
+        }
+    }
+
+    /// Removes a specified column from an augmented matrix, similarly to `remove(n)` for vectors.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned};
+    /// let mut foo = augmented_matrix![
+    ///      0  1  2  3 => 0;
+    ///      4  5  6  7 => 1;
+    ///      8  9 10 11 => 2;
+    ///     12 13 14 15 => 3
+    /// ];
+    /// foo.remove_column(1);
+    /// println!("{:?}", foo);
+    /// let bar = augmented_matrix![
+    ///      0  2  3 => 0;
+    ///      4  6  7 => 1;
+    ///      8 10 11 => 2;
+    ///     12 14 15 => 3
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// ```
+    pub fn remove_column(&mut self, column: usize) {
+        if column == self.num_columns() {
             self.pop_column();
             return;
         }
@@ -72,40 +146,15 @@ impl<T> Matrix<T> {
     }
 }
 
-impl<T> AugmentedMatrix<T> {
-    pub fn pop_column(&mut self) {
-        if self.is_column_aligned() {
-            for _ in 0..self.rows {
-                drop(self.matrix.pop());
-            }
-            self.rows -= 1;
-        } else {
-            for c in (1..self.num_rows() + 1).rev() {
-                self.matrix.remove(self.columns * c - 1);
-            }
-            self.columns -= 1;
-        }
-    }
-
-    pub fn remove_column(&mut self, column: usize) {
-        if column == self.num_rows() {
-            return;
-        }
-        if self.is_column_aligned() {
-            self.matrix.drain(column * self.rows..(column + 1) * self.rows);
-            self.rows -= 1;
-        } else {
-            for r in (0..self.num_rows()).rev() {
-                self.matrix.remove(r * self.columns + r);
-            }
-            self.columns -= 1;
-        }
-    }
-}
-
 macro_rules! pop_remove_rows_columns {
-    ($($target_type:ty),*) => ($(
+    ($($target_type:ty {
+        $pop_row_expr:expr,
+        $remove_row_expr:expr,
+        $remove_rows_expr:expr,
+        $remove_columns_expr:expr
+    }),*) => ($(
         impl<T> $target_type {
+            #[doc = $pop_row_expr]
             pub fn pop_row(&mut self) {
                 if self.is_row_aligned() {
                     for _ in 0..self.columns {
@@ -113,35 +162,45 @@ macro_rules! pop_remove_rows_columns {
                     }
                     self.rows -= 1;
                 } else {
-                    for c in 0..self.num_columns() {
-                        self.matrix.remove((self.columns - 1) * self.rows + c);
+                    let r_max = if self.is_row_aligned() {
+                        self.columns
+                    } else {
+                        self.rows
+                    };
+                    for r in (1..r_max).rev() {
+                        self.matrix.remove(r_max * r - 1);
                     }
                     self.columns -= 1;
                 }
             }
 
+            #[doc = $remove_row_expr]
             pub fn remove_row(&mut self, row: usize) {
-                if row == self.rows {
+                if row == self.num_rows() {
                     self.pop_row();
                     return;
                 }
                 if self.is_row_aligned() {
                     self.matrix.drain(row * self.columns..(row + 1) * self.columns);
+                    self.rows -= 1;
                 } else {
-                    for c in 0..self.num_columns() {
-                        self.matrix.remove(row * self.columns + c);
+                    for c in (0..self.rows).rev() {
+                        self.matrix.remove(c * self.rows + row);
                     }
+                    self.columns -= 1;
                 }
             }
 
+            #[doc = $remove_rows_expr]
             pub fn remove_rows(&mut self, rows: Range<usize>) {
-                for r in rows {
+                for r in rows.rev() {
                     self.remove_row(r);
                 }
             }
 
-            pub fn remove_columns(&mut self, columns:  Range<usize>) {
-                for c in columns {
+            #[doc = $remove_columns_expr]
+            pub fn remove_columns(&mut self, columns: Range<usize>) {
+                for c in columns.rev() {
                     self.remove_column(c);
                 }
             }
@@ -149,7 +208,83 @@ macro_rules! pop_remove_rows_columns {
     )*)
 }
 
-pop_remove_rows_columns!{Matrix<T>, AugmentedMatrix<T>}
+pop_remove_rows_columns!{Matrix<T> {
+    "Removes the last row from a matrix, similarly to `pop()` for vectors.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{Matrix, Alignment::RowAligned};
+    let mut foo = matrix![
+         0  1  2  3  4  5;
+         6  7  8  9 10 11;
+        12 13 14 15 16 17
+    ];
+    foo.pop_row();
+    let bar = matrix![
+        0  1  2  3  4  5;
+        6  7  8  9 10 11
+    ];
+    assert_eq!(foo, bar);
+    ```",
+    "Removes a given row from a matrix, similarly to `remove()` for vectors.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{Matrix, Alignment::RowAligned};
+    let mut foo = matrix![
+         0  1  2  3  4  5;
+         6  7  8  9 10 11;
+        12 13 14 15 16 17
+    ];
+    foo.remove_row(0);
+    let bar = matrix![
+         6  7  8  9 10 11;
+        12 13 14 15 16 17
+    ];
+    assert_eq!(foo, bar);
+    ```",
+    "Removes a `Range<usize>` of rows from a `Matrix<T>`.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{Matrix, Alignment::RowAligned};
+    let mut foo = matrix![
+        0  1  2;
+        3  4  5;
+        6  7  8;
+        9 10 11
+    ];
+    foo.remove_rows(0..2);
+    let bar = matrix![
+        6  7  8;
+        9 10 11
+    ];
+    assert_eq!(foo, bar);
+    ```",
+    "Removes a `Range<usize>` of columns from a `Matrix<T>`.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{Matrix, Alignment::RowAligned};
+    let mut foo = matrix![
+         0  1  2  3  4  5;
+         6  7  8  9 10 11;
+        12 13 14 15 16 17
+    ];
+    foo.remove_columns(1..4);
+    let bar = matrix![
+         0  4  5;
+         6 10 11;
+        12 16 17
+    ];
+    assert_eq!(foo, bar);
+    ```"
+}, AugmentedMatrix<T> {
+    "",
+    "",
+    "",
+    ""
+}}
 
 pub trait AddElements<T> {
     fn push_row<R: AsRef<[T]>>(&mut self, row: R);
