@@ -120,7 +120,6 @@ impl<T> AugmentedMatrix<T> {
     ///     12 13 14 15 => 3
     /// ];
     /// foo.remove_column(1);
-    /// println!("{:?}", foo);
     /// let bar = augmented_matrix![
     ///      0  2  3 => 0;
     ///      4  6  7 => 1;
@@ -195,7 +194,6 @@ macro_rules! pop_remove_rows_columns {
 
             #[doc = $remove_rows_expr]
             pub fn remove_rows(&mut self, rows: Range<usize>) {
-                println!("Range: {:?}, num_columns(): {}", rows, self.num_rows());
                 assert!(rows.start <= self.num_rows());
                 assert!(rows.end < self.num_rows() + 1);
                 for r in rows.rev() {
@@ -205,7 +203,6 @@ macro_rules! pop_remove_rows_columns {
 
             #[doc = $remove_columns_expr]
             pub fn remove_columns(&mut self, columns: Range<usize>) {
-                println!("Range: {:?}, num_columns(): {}", columns, self.num_columns());
                 assert!(columns.start <= self.num_columns());
                 assert!(columns.end < self.num_columns() + 1);
                 for c in columns.rev() {
@@ -459,7 +456,9 @@ pub trait AddElements<T> {
 // Macro removed for now until I better understand why it wasn't working. Once I do, I'll swap it
 // back in to reduce this section back to its original ~600 LoC.
 
-impl<T: Clone> AddElements<T> for Matrix<T> {
+use std::fmt::Display;
+
+impl<T: Clone + Display> AddElements<T> for Matrix<T> {
     /// Pushes a row to a `Matrix<T>`, similarly to `push()` for vectors. Panics if the length of
     /// the supplied row is not equal to the number of columns in the matrix and .
     /// # Example
@@ -1038,9 +1037,8 @@ impl<T: Clone> AddElements<T> for Matrix<T> {
     ///     15 16 17 18 19;
     ///     20 21 22 23 24
     /// ];
-    /// println!("wewe:\n{:?}", foo);
+    /// foo.column_align();
     /// foo.insert_rows(1, [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
-    /// println!("lads");
     /// let bar = matrix![
     ///      0  1  2  3  4;
     ///      5  6  7  8  9;
@@ -1048,7 +1046,6 @@ impl<T: Clone> AddElements<T> for Matrix<T> {
     ///     15 16 17 18 19;
     ///     20 21 22 23 24
     /// ];
-    /// println!("double wewe:\n{:?}", bar);
     /// assert_eq!(foo, bar);
     /// ```
     /// # Panics
@@ -1086,12 +1083,13 @@ impl<T: Clone> AddElements<T> for Matrix<T> {
             self.matrix = new;
             self.rows += rows.len() / self.num_columns();
         } else {
-            for r in (0..rows.len() / self.num_columns()).rev() {
-                for c in (0..self.num_columns()).rev() {
-                    let insert_loc = self.num_rows() * c + location;
-                    let rows_loc = r * self.num_columns() + c;
-                    self.matrix.insert(insert_loc, rows[rows_loc].clone());
+            for l in (0..rows.len() / self.num_columns()).rev() {
+                let rs_range: Range<usize> = l * self.num_columns()..(l + 1) * self.num_columns();
+                for (i, e) in rows[rs_range].iter().enumerate().rev() {
+                    let insert_loc = i % self.num_columns() * self.num_rows() + location;
+                    self.matrix.insert(insert_loc, e.clone());
                 }
+                self.columns += 1;
             }
         }
     }
@@ -1125,6 +1123,11 @@ impl<T: Clone> AddElements<T> for Matrix<T> {
     ///     5 6 9
     /// ];
     /// foo.insert_columns(2, [0, 1, 2]);
+    /// let bar = matrix![
+    ///     0 1 2 3 4;
+    ///     5 6 7 8 9
+    /// ];
+    /// assert_eq!(foo, bar);
     /// ```
     /// ```should_panic
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1134,7 +1137,7 @@ impl<T: Clone> AddElements<T> for Matrix<T> {
     ///     0 1 4;
     ///     5 6 9
     /// ];
-    /// foo.insert_columns(4, [2, 3, 7, 8]);
+    /// foo.insert_columns(4, [0, 1, 2]);
     /// ```
     fn insert_columns<R: AsRef<[T]>>(&mut self, location: usize, columns: R) {
         let columns = columns.as_ref();
@@ -1151,14 +1154,14 @@ impl<T: Clone> AddElements<T> for Matrix<T> {
             self.matrix = new;
             self.columns += columns.len() / self.num_columns();
         } else {
-            for c in (0..columns.len() / self.num_rows()).rev() {
-                for r in (0..self.num_rows()).rev() {
-                    let insert_loc = self.num_columns() * c + location;
-                    let columns_loc = r * self.num_rows() + c;
-                    self.matrix.insert(insert_loc, columns[columns_loc].clone());
+            for l in (0..columns.len() / self.num_rows()).rev() {
+                let cs_range: Range<usize> = l * self.num_rows()..(l + 1) * self.num_rows();
+                for (i, e) in columns[cs_range].iter().enumerate().rev() {
+                    let insert_loc = i % self.num_rows() * self.num_columns() + location;
+                    self.matrix.insert(insert_loc, e.clone());
                 }
+                self.columns += 1;
             }
-            self.columns += columns.len() / self.num_rows();
         }
     }
 
@@ -1181,7 +1184,9 @@ impl<T: Clone> AddElements<T> for Matrix<T> {
     /// ];
     /// assert_eq!(foo, bar);
     /// assert!(foo.num_rows() == 4);
-    /// assert!(foo.try_insert_rows(5,
+    /// assert!(foo.try_insert_rows(5, [0, 1, 2, 3]).is_err());
+    /// assert!(foo.try_insert_rows(1, [0, 1, 2, 3, 4, 5]).is_err());
+    /// ```
     fn try_insert_rows<R: AsRef<[T]>>(&mut self, location: usize, rows: R) -> Result<(), MatrixError> {
         let rows = rows.as_ref();
         if rows.len() % self.num_columns() != 0 {
@@ -1215,6 +1220,29 @@ impl<T: Clone> AddElements<T> for Matrix<T> {
         Ok(())
     }
 
+    /// Attempts to insert columns into a given matrix.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{Matrix, Alignment::RowAligned};
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = matrix![
+    ///      0  3;
+    ///      4  7;
+    ///      8 11;
+    ///     12 15
+    /// ];
+    /// assert!(foo.try_insert_columns(1, [1, 5, 9, 13, 2, 6, 10, 14]).is_ok());
+    /// let bar = matrix![
+    ///      0  1  2  3;
+    ///      4  5  6  7;
+    ///      8  9 10 11;
+    ///     12 13 14 15
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// assert!(foo.try_insert_columns(10, [0, 1, 2, 3]).is_err());
+    /// assert!(foo.try_insert_columns(4, [0, 1]).is_err());
+    /// ```
     fn try_insert_columns<R: AsRef<[T]>>(&mut self, location: usize, columns: R)
                        -> Result<(), MatrixError> {
         let columns = columns.as_ref();
@@ -1238,14 +1266,14 @@ impl<T: Clone> AddElements<T> for Matrix<T> {
             self.matrix = new;
             self.columns += columns.len() / self.num_columns();
         } else {
-            for c in (0..columns.len() / self.num_rows()).rev() {
-                for r in (0..self.num_rows()).rev() {
-                    let insert_loc = self.num_columns() * c + location;
-                    let columns_loc = r * self.num_rows() + c;
-                    self.matrix.insert(insert_loc, columns[columns_loc].clone());
+            for l in (0..columns.len() / self.num_rows()).rev() {
+                let cs_range: Range<usize> = l * self.num_rows()..(l + 1) * self.num_rows();
+                for (i, e) in columns[cs_range].iter().enumerate().rev() {
+                    let insert_loc = i % self.num_rows() * self.num_columns() + location;
+                    self.matrix.insert(insert_loc, e.clone());
                 }
+                self.columns += 1;
             }
-            self.columns += columns.len() / self.num_rows();
         }
         Ok(())
     }
