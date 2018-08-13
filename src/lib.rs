@@ -14,16 +14,21 @@ mod tests {
     #[test]
     fn wewe() {
         let mut foo = matrix![
-             0  1  2  3  4  5;
-             6  7  8  9 10 11;
-            12 13 14 15 16 17
+             0  1  2  3  4;
+            15 16 17 18 19;
+            20 21 22 23 24
         ];
-        foo.remove_columns(1..4);
+        println!("wewe:\n{:?}", foo);
+        foo.insert_rows(1, [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+        println!("lads");
         let bar = matrix![
-             0  4  5;
-             6 10 11;
-            12 16 17
+             0  1  2  3  4;
+             5  6  7  8  9;
+            10 11 12 13 14;
+            15 16 17 18 19;
+            20 21 22 23 24
         ];
+        println!("double wewe:\n{:?}", bar);
         assert_eq!(foo, bar);
     }
     
@@ -159,81 +164,5 @@ mod tests {
         assert_eq!(foo, bar);
         bar.in_place_transpose();
         assert_eq!(foo, bar);
-    }
-
-    #[test]
-    fn push_row_ra() {
-        let mut foo = matrix![
-            1 2 3;
-            4 5 6
-        ];
-        foo.push_row([7, 8, 9]);
-        assert_eq!(foo, matrix![1 2 3; 4 5 6; 7 8 9]);
-    }
-
-    #[test]
-    fn push_row_ca() {
-        let mut foo = matrix![
-            1 2 3;
-            4 5 6
-        ];
-        foo.column_align();
-        foo.push_row([7, 8, 9]);
-        assert_eq!(foo, matrix![1 2 3; 4 5 6; 7 8 9]);
-    }
-
-    #[test]
-    fn try_push_row_ra_ok() {
-        let mut foo = matrix![
-            1 2 3;
-            4 5 6
-        ];
-        assert!(foo.try_push_row([7, 8, 9]).is_ok());
-        assert_eq!(foo, matrix![1 2 3; 4 5 6; 7 8 9]);
-    }
-
-    #[test]
-    fn try_push_row_ca_ok() {
-        let mut foo = matrix![
-            1 2 3;
-            4 5 6
-        ];
-        foo.column_align();
-        assert!(foo.try_push_row([7, 8, 9]).is_ok());
-        assert_eq!(foo, matrix![1 2 3; 4 5 6; 7 8 9]);
-    }
-
-    #[test]
-    fn try_push_row_ra_err() {
-        let mut foo = matrix![
-            1 2 3;
-            4 5 6
-        ];
-        assert!(foo.try_push_row([7, 8]).is_err());
-    }
-
-    #[test]
-    fn try_push_row_ca_err() {
-        let mut foo = matrix![
-            1 2 3;
-            4 5 6
-        ];
-        foo.column_align();
-        assert!(foo.try_push_row([7, 8]).is_err());
-    }
-
-    #[test]
-    fn push_rows_ra() {
-        let mut foo = matrix![1 2 3];
-        foo.push_rows([4, 5, 6, 7, 8, 9]);
-        assert_eq!(foo, matrix![1 2 3; 4 5 6; 7 8 9]);
-    }
-
-    #[test]
-    fn push_rows_ca() {
-        let mut foo = matrix![1 2 3];
-        foo.column_align();
-        foo.push_rows([4, 5, 6, 7, 8, 9]);
-        assert_eq!(foo, matrix![1 2 3; 4 5 6; 7 8 9]);
     }
 }

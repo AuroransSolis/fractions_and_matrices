@@ -524,7 +524,8 @@ Matrix<T>, Matrix,
         6 7 8
     ];
     foo.in_place_transpose();
-    let bar = Matrix::new_from_vec((3, 3), vec![0, 3, 6, 1, 4, 7, 2, 5, 8], ColumnAligned).unwrap();
+    let bar = Matrix::new_from_vec((3, 3), vec![0, 3, 6, 1, 4, 7, 2, 5, 8],
+        ColumnAligned).unwrap();
     assert_eq!(foo, bar);
     ```",
     "Row-aligns a matrix. If a matrix is already row-aligned, then nothing happens.
