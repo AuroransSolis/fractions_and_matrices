@@ -920,3 +920,52 @@ impl<T: PartialEq + Clone + Zero + One> Unit for AugmentedMatrix<T> {
         true
     }
 }
+
+impl<T: Clone> AugmentedMatrix<T> {
+    /// Change the solution column of an augmented matrix. Panics if the length of the new solution
+    /// column is not equal to the length of the current one.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned};
+    /// let mut foo: AugmentedMatrix<f32> = AugmentedMatrix::unit(2);
+    /// foo.set_solution_column([1, 2]);
+    /// let bar = augmented_matrix![
+    ///     1 0 => 1;
+    ///     0 1 => 2
+    /// ];
+    /// assert!(foo.exactly_equal_to(bar));
+    /// ```
+    /// # Panics
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned};
+    /// let mut foo = augmented_matrix![
+    ///     0 1 => 2;
+    ///     3 4 => 5
+    /// ];
+    /// foo.set_solution_column([0, 1, 2]);
+    /// ```
+    fn set_solution_column<R: AsRef<[T]>>(&mut self, new_solution_column: R) {
+        let nsc = new_solution_column.as_ref();
+        assert_eq!(self.num_rows(), nsc.len());
+        for r in 0..self.num_rows() {
+            self[(r, self.num_columns())] = nsc[r].clone();
+        }
+    }
+
+    fn try_set_solution_column<R: AsRef<[T]>>(&mut self, new_solution_column: R)
+        -> Result<(), MatrixError> {
+        let nsc = new_solution_column.as_ref();
+        if self.num_rows() != nsc.len() {
+            return Err(MatrixError::FunctionError(
+                "Provided new solution column did not have the same number of elements as the\
+                current solution column.".to_string()
+            ));
+        }
+        for r in 0..self.num_rows() {
+            self[(r, self.num_columns())] = nsc[r].clone();
+        }
+        Ok(())
+    }
+}
