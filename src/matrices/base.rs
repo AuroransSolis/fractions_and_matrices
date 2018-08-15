@@ -1,3 +1,6 @@
+//! Definition of `Matrix` and `AugmentedMatrix` structs, getter and setter methods, and convenience
+//! methods.
+
 #![allow(dead_code)]
 
 use num::{Zero, One};
@@ -103,6 +106,7 @@ macro_rules! matrix_base_impls {
         $num_rows_doc_expr:expr,
         $is_row_aligned_doc_expr:expr,
         $is_column_aligned_doc_expr:expr,
+        $into_vec_doc_expr:expr,
         $exactly_equal_doc_expr:expr
     });* ) => ($(
         impl<T: Clone> $target_type {
@@ -258,6 +262,11 @@ macro_rules! matrix_base_impls {
                     Alignment::ColumnAligned => true
                 }
             }
+
+            #[doc = $into_vec_doc_expr]
+            pub fn into_vec(self) -> Vec<T> {
+                self.matrix
+            }
         }
 
         impl<T: PartialEq> $target_type {
@@ -295,7 +304,7 @@ matrix_base_impls!{AugmentedMatrix<T>, AugmentedMatrix,
     bar.set_matrix(vec![2, 2, 2, 2]);
     assert_eq!(foo, bar);
     ```",
-    "Creates a new empty matrix. Its contents can be initialized with `.set_matrix()`.
+    "Creates a new empty matrix. Its contents can be initialized with [`.set_matrix()`].
     # Example
     ```rust
     # #[macro_use] extern crate fractions_and_matrices;
@@ -309,7 +318,8 @@ matrix_base_impls!{AugmentedMatrix<T>, AugmentedMatrix,
         6 7 => 8
     ];
     assert_eq!(foo, bar);
-    ```",
+    ```
+    [`set_matrix()`]: ../base/struct.Matrix.html#method.set_matrix",
     "Makes a new `AugmentedMatrix<T>` from a supplied `Vec<T>` and `(usize, usize)` designating the
     dimension. The product of the two tuple elements and the length of the `Vec<T>` must be
     equal to get an `Ok(AugmentedMatrix<T>)`.
@@ -428,6 +438,18 @@ matrix_base_impls!{AugmentedMatrix<T>, AugmentedMatrix,
     ```",
     "Determines whether a matrix is row-aligned or not.",
     "Determines whether a matrix is column-aligned or not.",
+    "Returns the inner `Vec<T>` from an `AugmentedMatrix<T>`.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned};
+    let foo = augmented_matrix![
+        0 1 2 3  4 =>  5;
+        6 7 8 9 10 => 11
+    ];
+    let bar = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    assert_eq!(foo.into_vec(), bar);
+    ```",
     "Tests whether a matrix is exactly equal to another, taking alignment into account.
     # Example
     ```rust
@@ -586,6 +608,18 @@ Matrix<T>, Matrix,
     ```",
     "Determines whether a matrix is row-aligned or not.",
     "Determines whether a matrix is column-aligned or not.",
+    "Returns the inner `Vec<T>` from a `Matrix<T>`.
+    # Example
+    ```rust
+    # #[macro_use] extern crate fractions_and_matrices;
+    # use fractions_and_matrices::matrices::base::{Matrix, Alignment::RowAligned};
+    let foo = matrix![
+        0 1 2 3  4  5;
+        6 7 8 9 10 11
+    ];
+    let bar = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    assert_eq!(foo.into_vec(), bar);
+    ```",
     "Tests whether a matrix is exactly equal to another, taking alignment into account.
     # Example
     ```rust
@@ -927,17 +961,18 @@ impl<T: Clone> AugmentedMatrix<T> {
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
-    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned};
+    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned,
+    /// #    Unit};
     /// let mut foo: AugmentedMatrix<f32> = AugmentedMatrix::unit(2);
-    /// foo.set_solution_column([1, 2]);
+    /// foo.set_solution_column([1.0, 2.0]);
     /// let bar = augmented_matrix![
-    ///     1 0 => 1;
-    ///     0 1 => 2
+    ///     1.0 0.0 => 1.0;
+    ///     0.0 1.0 => 2.0
     /// ];
-    /// assert!(foo.exactly_equal_to(bar));
+    /// assert!(foo.exactly_equal_to(&bar));
     /// ```
     /// # Panics
-    /// ```rust
+    /// ```should_panic
     /// # #[macro_use] extern crate fractions_and_matrices;
     /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned};
     /// let mut foo = augmented_matrix![
@@ -946,15 +981,16 @@ impl<T: Clone> AugmentedMatrix<T> {
     /// ];
     /// foo.set_solution_column([0, 1, 2]);
     /// ```
-    fn set_solution_column<R: AsRef<[T]>>(&mut self, new_solution_column: R) {
+    pub fn set_solution_column<R: AsRef<[T]>>(&mut self, new_solution_column: R) {
         let nsc = new_solution_column.as_ref();
         assert_eq!(self.num_rows(), nsc.len());
         for r in 0..self.num_rows() {
-            self[(r, self.num_columns())] = nsc[r].clone();
+            let self_loc = (r, self.num_columns());
+            self[self_loc] = nsc[r].clone();
         }
     }
 
-    fn try_set_solution_column<R: AsRef<[T]>>(&mut self, new_solution_column: R)
+    pub fn try_set_solution_column<R: AsRef<[T]>>(&mut self, new_solution_column: R)
         -> Result<(), MatrixError> {
         let nsc = new_solution_column.as_ref();
         if self.num_rows() != nsc.len() {
@@ -964,7 +1000,8 @@ impl<T: Clone> AugmentedMatrix<T> {
             ));
         }
         for r in 0..self.num_rows() {
-            self[(r, self.num_columns())] = nsc[r].clone();
+            let self_loc = (r, self.num_columns());
+            self[self_loc] = nsc[r].clone();
         }
         Ok(())
     }
