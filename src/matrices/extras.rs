@@ -1,3 +1,6 @@
+//! Provides methods for popping/removing/pushing/inserting row/rows/column/columns to matrices
+//! and augmented matrices.
+
 use std::ops::Range;
 
 use matrices::base::{AugmentedMatrix, Matrix, MatrixError};
