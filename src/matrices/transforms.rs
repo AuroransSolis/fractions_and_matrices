@@ -1,3 +1,5 @@
+//! For things like methods that transform to REF/RREF, doing inverses, etc.
+
 use num::{One, Zero};
 
 use std::ops::{AddAssign, SubAssign, MulAssign, Neg, Div, DivAssign, Rem, Range};
