@@ -1227,7 +1227,7 @@ impl<T: Clone + Display> AddElements<T> for Matrix<T> {
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
-    /// # use fractions_and_matrices::matrices::base::{Matrix, Alignment::RowAligned};
+    /// # use fractions_and_matrices::matrices::base::Matrix;
     /// # use fractions_and_matrices::matrices::extras::AddElements;
     /// let mut foo = matrix![
     ///      0  3;
@@ -1283,6 +1283,40 @@ impl<T: Clone + Display> AddElements<T> for Matrix<T> {
 }
 
 impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
+    /// Appends a row to the end of an augmented matrix. Panics of the supplied row does not have
+    /// a length equal to the number of columns in the augmented matrix (including the solution
+    /// column).
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 0 0 0 => 0;
+    ///     0 1 0 0 => 1;
+    ///     0 0 1 0 => 2
+    /// ];
+    /// foo.push_row([0, 0, 0, 1, 3]);
+    /// let bar = augmented_matrix![
+    ///     1 0 0 0 => 0;
+    ///     0 1 0 0 => 1;
+    ///     0 0 1 0 => 2;
+    ///     0 0 0 1 => 3
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// ```
+    /// # Panics
+    /// ```should_panic
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 0 0 0 => 0;
+    ///     0 1 0 0 => 1;
+    ///     0 0 1 0 => 2
+    /// ];
+    /// foo.push_row([0, 0, 0, 1]);
+    /// ```
     fn push_row<R: AsRef<[T]>>(&mut self, row: R) {
         let row = row.as_ref();
         assert_eq!(row.len(), self.num_columns() + 1);
