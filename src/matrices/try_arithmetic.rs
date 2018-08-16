@@ -1,3 +1,6 @@
+//! Does the same thing as operator overloads, except invalid conditions return an
+//! `Err(MatrixError)` instead of panicking.
+
 use num::{Zero, One};
 
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign};
