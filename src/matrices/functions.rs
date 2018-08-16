@@ -1,3 +1,5 @@
+//! Useless right now :^)
+
 /*use std::cmp;
 
 use matrix_base::*;
