@@ -1332,6 +1332,39 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         }
     }
 
+    /// Pushes a column to an augmented matrix. Panics if the length of the column is not equal to
+    /// the number of rows in the augmented matrix. **NOTE:** the pushed column will be to the
+    /// **left** of the solution column.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1  2 =>  4;
+    ///     5  6 =>  8;
+    ///     9 10 => 12
+    /// ];
+    /// foo.push_column([3, 7, 11]);
+    /// let bar = augmented_matrix![
+    ///     1  2  3 =>  4;
+    ///     5  6  7 =>  8;
+    ///     9 10 11 => 12
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// ```
+    /// # Panics
+    /// ```should_panic
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1  2 =>  4;
+    ///     5  6 =>  8;
+    ///     9 10 => 12
+    /// ];
+    /// foo.push_column([0, 1]);
+    /// ```
     fn push_column<R: AsRef<[T]>>(&mut self, column: R) {
         let column = column.as_ref();
         assert_eq!(column.len(), self.num_rows());
@@ -1343,13 +1376,33 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
             self.rows += 1;
         } else {
             for r in (0..self.num_rows()).rev() {
-                let insert_loc = self.num_columns() * r + self.num_columns();
+                let insert_loc = (self.num_columns() + 1) * r + self.num_columns();
                 self.matrix.insert(insert_loc, column[r].clone());
             }
             self.columns += 1;
         }
     }
 
+    /// Attempts to push a row to an augmented matrix. Returns an error if the length of the
+    /// provided row is not equal to the number of columns in the augmented matrix.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 0 0 => 0;
+    ///     0 1 0 => 1
+    /// ];
+    /// assert!(foo.try_push_row([0, 0, 1, 2]).is_ok());
+    /// let bar = augmented_matrix![
+    ///     1 0 0 => 0;
+    ///     0 1 0 => 1;
+    ///     0 0 1 => 2
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// assert!(foo.try_push_row([0]).is_err());
+    /// ```
     fn try_push_row<R: AsRef<[T]>>(&mut self, row: R) -> Result<(), MatrixError> {
         let row = row.as_ref();
         if row.len() != self.num_columns() + 1 {
@@ -1369,6 +1422,7 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         Ok(())
     }
 
+    /// Attempts to push a column to an augmented matrix. Returns an error if the length of the
     fn try_push_column<R: AsRef<[T]>>(&mut self, column: R) -> Result<(), MatrixError> {
         let column = column.as_ref();
         if column.len() != self.num_rows() {
