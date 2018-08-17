@@ -974,7 +974,7 @@ impl<T: Clone> AugmentedMatrix<T> {
     /// # Panics
     /// ```should_panic
     /// # #[macro_use] extern crate fractions_and_matrices;
-    /// # use fractions_and_matrices::matrices::base::{AugmentedMatrix, Alignment::RowAligned};
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
     /// let mut foo = augmented_matrix![
     ///     0 1 => 2;
     ///     3 4 => 5
@@ -990,6 +990,24 @@ impl<T: Clone> AugmentedMatrix<T> {
         }
     }
 
+    /// Attempts to change the solution column of an augmented matrix. Returns an error if the
+    /// length of the new solution column is not equal to the length of the current one.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// let mut foo = augmented_matrix![
+    ///     1.0 0.0 => 1.0;
+    ///     0.0 1.0 => 2.0
+    /// ];
+    /// assert!(foo.try_set_solution_column([0.0, 0.0]).is_ok());
+    /// let bar = augmented_matrix![
+    ///     1.0 0.0 => 0.0;
+    ///     0.0 1.0 => 0.0
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// assert!(foo.try_set_solution_column([0.0, 1.0, 2.0]).is_err());
+    /// ```
     pub fn try_set_solution_column<R: AsRef<[T]>>(&mut self, new_solution_column: R)
         -> Result<(), MatrixError> {
         let nsc = new_solution_column.as_ref();
