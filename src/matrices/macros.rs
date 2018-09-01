@@ -107,11 +107,11 @@ macro_rules! augmented_matrix {
 
 /// Allows the user to get a window into a matrix or augmented matrix. There are four distinct ways
 /// of using this macro:
-/// - Getting a single row or column (`window!(matrix, r: n)` or `window!(matrix, c: n)`)
+/// - Getting a single row or column (`window!(matrix, row: n)` or `window!(matrix, col: n)`)
 /// - Getting part of a single row or column (`window!(matrix, (r, c_start..c_end))`
 /// or `window!(matrix, (r_start..r_end, c))`)
-/// - Getting multiple rows or columns (`window!(matrix, r: r_start..r_end)` or
-/// `window!(matrix, c: c_start..c_end)`)
+/// - Getting multiple rows or columns (`window!(matrix, rows: r_start..r_end)` or
+/// `window!(matrix, cols: c_start..c_end)`)
 /// - Getting parts of multiple rows or columns
 /// (`window!(matrix, (r_start..r_end, c_start..c_end))`)
 ///
@@ -130,11 +130,11 @@ macro_rules! augmented_matrix {
 ///      8  9 10 11;
 ///     12 13 14 15
 /// ];
-/// let window_single_row = window!(matrix, r: 1);
+/// let window_single_row = window!(matrix, row: 1);
 /// let wsr: Matrix<u32> = Matrix::new_from_vec((1, 4), vec![4, 5, 6, 7], RowAligned).unwrap();
 /// assert_eq!(window_single_row, wsr);
-/// let window_single_column = window!(matrix, c: 3);
-/// let wsc: Matrix<u32> = Matrix::new_from_vec((1, 4), vec![3, 7, 11, 15], RowAligned).unwrap();
+/// let window_single_column = window!(matrix, col: 3);
+/// let wsc: Matrix<u32> = Matrix::new_from_vec((4, 1), vec![3, 7, 11, 15], RowAligned).unwrap();
 /// assert_eq!(window_single_column, wsc);
 /// ```
 /// ```rust
@@ -149,8 +149,9 @@ macro_rules! augmented_matrix {
 /// let wpr: Matrix<u32> = Matrix::new_from_vec((1, 3), vec![1, 0, 1], RowAligned)
 ///     .unwrap();
 /// assert_eq!(window_partial_row, wpr);
-/// let window_partial_column = window!(augmented_matrix, (2, 0..2));
-/// let wpc: Matrix<u32> = Matrix::new_from_vec((1, 2), vec![0, 0], RowAligned).unwrap();
+/// let window_partial_column = window!(augmented_matrix, (0..2, 2));
+/// let wpc: Matrix<u32> = Matrix::new_from_vec((2, 1), vec![0, 0], RowAligned).unwrap();
+/// assert_eq!(window_partial_column, wpc);
 /// ```
 /// ```rust
 /// # #[macro_use] extern crate fractions_and_matrices;
@@ -162,11 +163,11 @@ macro_rules! augmented_matrix {
 ///     0 1 0 0 0;
 ///     1 0 0 0 0
 /// ];
-/// let rows = window!(matrix, r: (1..4));
+/// let rows = window!(matrix, rows: (1..4));
 /// let r: Matrix<u32> = Matrix::new_from_vec((3, 5),
 ///     vec![0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], RowAligned).unwrap();
 /// assert_eq!(rows, r);
-/// let columns = window!(matrix, c: (3..5));
+/// let columns = window!(matrix, cols: (3..5));
 /// let c: Matrix<u32> = Matrix::new_from_vec((5, 2), vec![0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
 ///     RowAligned).unwrap();
 /// assert_eq!(columns, c);
@@ -180,7 +181,7 @@ macro_rules! augmented_matrix {
 ///     0 0 1 0 => 2;
 ///     0 0 0 1 => 3
 /// ];
-/// let window_1 = window!(augmented_matrix, (1..3, 1..6));
+/// let window_1 = window!(augmented_matrix, (1..3, 1..5));
 /// let w1: Matrix<u32> = Matrix::new_from_vec((2, 4), vec![1, 0, 0, 1, 0, 1, 0, 2],
 ///     RowAligned).unwrap();
 /// assert_eq!(window_1, w1);
@@ -191,10 +192,10 @@ macro_rules! augmented_matrix {
 /// ```
 #[macro_export]
 macro_rules! window {
-    ($matrix:ident, r: $r:tt) => {
-        if matrix.is_row_aligned() {
+    ($matrix:ident, row: $r:tt) => {
+        if $matrix.is_row_aligned() {
             use $crate::matrices::base::Alignment::RowAligned;
-            Matrix::new_from_vec((1, $matrix.num_columns()), $matrix[$r].clone().into_vec(),
+            Matrix::new_from_vec((1, $matrix.num_columns()), (&$matrix[$r]).to_vec(),
                 RowAligned).unwrap()
         } else {
             use $crate::matrices::base::Alignment::ColumnAligned;
@@ -205,10 +206,10 @@ macro_rules! window {
             Matrix::new_from_vec((1, $matrix.num_columns()), vec, ColumnAligned).unwrap()
         }
     };
-    ($matrix:ident, c: $c:tt) => {
-        if matrix.is_column_aligned() {
+    ($matrix:ident, col: $c:tt) => {
+        if $matrix.is_column_aligned() {
             use $crate::matrices::base::Alignment::ColumnAligned;
-            Matrix::new_from_vec(($matrix.num_rows(), 1), $matrix[$c].clone().into_vec(),
+            Matrix::new_from_vec(($matrix.num_rows(), 1), (&$matrix[$c]).to_vec(),
                 ColumnAligned).unwrap()
         } else {
             use $crate::matrices::base::Alignment::RowAligned;
@@ -220,10 +221,10 @@ macro_rules! window {
         }
     };
     ($matrix:ident, ($r:tt, $c_start:tt..$c_end:tt)) => {
-        if matrix.is_row_aligned() {
+        if $matrix.is_row_aligned() {
             use $crate::matrices::base::Alignment::RowAligned;
-            Matrix::new_from_vec((1, $matrix.num_columns()),
-                $matrix[$r][$c_start..$c_end].clone().into_vec(), RowAligned).unwrap()
+            Matrix::new_from_vec((1, $c_end - $c_start),
+                (&$matrix[$r][$c_start..$c_end]).to_vec(), RowAligned).unwrap()
         } else {
             use $crate::matrices::base::Alignment::ColumnAligned;
             let mut vec = Vec::with_capacity($matrix.num_columns());
@@ -234,10 +235,10 @@ macro_rules! window {
         }
     };
     ($matrix:ident, ($r_start:tt..$r_end:tt, $c:tt)) => {
-        if matrix.is_column_aligned() {
+        if $matrix.is_column_aligned() {
             use $crate::matrices::base::Alignment::ColumnAligned;
-            Matrix::new_from_vec(($matrix.num_rows(), 1),
-                $matrix[$c][$r_start..$r_end].clone().into_vec(), ColumnAligned).unwrap()
+            Matrix::new_from_vec(($r_end - $r_start, 1),
+                (&$matrix[$c][$r_start..$r_end]).to_vec(), ColumnAligned).unwrap()
         } else {
             use $crate::matrices::base::Alignment::RowAligned;
             let mut vec = Vec::with_capacity($matrix.num_columns());
@@ -247,16 +248,16 @@ macro_rules! window {
             Matrix::new_from_vec(($r_end - $r_start, 1), vec, RowAligned).unwrap()
         }
     };
-    ($matrix:ident, r: ($r_start:tt..$r_end:tt)) => {
+    ($matrix:ident, rows: ($r_start:tt..$r_end:tt)) => {
         if $matrix.is_row_aligned() {
             use $crate::matrices::base::Alignment::RowAligned;
             Matrix::new_from_vec(($r_end - $r_start, $matrix.num_columns()),
-                $matrix[$r_start..$r_end].clone().into_vec(), RowAligned).unwrap()
+                (&$matrix[$r_start..$r_end]).to_vec(), RowAligned).unwrap()
         } else {
             use $crate::matrices::base::Alignment::ColumnAligned;
-            let mut vec = Vec::with_capacity(($r_end - $r_start) as usize * $matrix.num_columns());
-            for r in $r_start..$r_end {
-                for c in 0..$matrix.num_columns() {
+            let mut vec = Vec::with_capacity(($r_end - $r_start) * $matrix.num_columns());
+            for c in 0..$matrix.num_columns() {
+                for r in $r_start..$r_end {
                     vec.push($matrix[c][r].clone());
                 }
             }
@@ -264,16 +265,16 @@ macro_rules! window {
                 .unwrap()
         }
     };
-    ($matrix:ident, c: ($c_start:tt..$c_end:tt)) => {
+    ($matrix:ident, cols: ($c_start:tt..$c_end:tt)) => {
         if $matrix.is_column_aligned() {
             use $crate::matrices::base::Alignment::ColumnAligned;
             Matrix::new_from_vec(($matrix.num_rows(), $c_end - $c_start),
-                $matrix[$c_start..$c_end].clone().into_vec(), ColumnAligned).unwrap()
+                (&$matrix[$c_start..$c_end]).to_vec(), ColumnAligned).unwrap()
         } else {
             use $crate::matrices::base::Alignment::RowAligned;
-            let mut vec = Vec::with_capacity(($c_end - $c_start) as usize * $matrix.num_rows());
-            for c in $c_start..$c_end {
-                for r in 0..$matrix.num_rows() {
+            let mut vec = Vec::with_capacity(($c_end - $c_start) * $matrix.num_rows());
+            for r in 0..$matrix.num_rows() {
+                for c in $c_start..$c_end {
                     vec.push($matrix[r][c].clone());
                 }
             }
