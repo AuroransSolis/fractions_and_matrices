@@ -1597,7 +1597,7 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
     /// let mut foo = augmented_matrix![
     ///     0 => 0
     /// ];
-    /// foo.insert_column(2, [1]);
+    /// foo.insert_column(3, [1]);
     /// ```
     /// ```should_panic
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1628,7 +1628,7 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
             self.rows += 1;
         } else {
             for r in (0..self.num_rows()).rev() {
-                let insert_loc = self.num_columns() * r + location;
+                let insert_loc = (self.num_columns() + 1) * r + location;
                 self.matrix.insert(insert_loc, column[r].clone());
             }
             self.columns += 1;
@@ -1642,7 +1642,21 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
     /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
     /// # use fractions_and_matrices::matrices::extras::AddElements;
     /// let mut foo = augmented_matrix![
-    /// 
+    ///     1 0 0 0 => 0;
+    ///     0 1 0 0 => 1;
+    ///     0 0 0 1 => 3
+    /// ];
+    /// assert!(foo.try_insert_row(2, [0, 0, 1, 0, 2]).is_ok());
+    /// let bar = augmented_matrix![
+    ///     1 0 0 0 => 0;
+    ///     0 1 0 0 => 1;
+    ///     0 0 1 0 => 2;
+    ///     0 0 0 1 => 3
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// assert!(foo.try_insert_row(7, [0, 0, 1, 0, 4]).is_err());
+    /// assert!(foo.try_insert_row(3, [0, 1, 2]).is_err());
+    /// ```
     fn try_insert_row<R: AsRef<[T]>>(&mut self, location: usize, row: R)
         -> Result<(), MatrixError> {
         if location == self.num_rows() {
