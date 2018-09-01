@@ -13,23 +13,12 @@ mod tests {
 
     #[test]
     fn wewe() {
-        let mut foo = matrix![
+        let foo = matrix![
              0  1  2  3  4;
             15 16 17 18 19;
             20 21 22 23 24
         ];
-        println!("wewe:\n{:?}", foo);
-        foo.insert_rows(1, [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
-        println!("lads");
-        let bar = matrix![
-             0  1  2  3  4;
-             5  6  7  8  9;
-            10 11 12 13 14;
-            15 16 17 18 19;
-            20 21 22 23 24
-        ];
-        println!("double wewe:\n{:?}", bar);
-        assert_eq!(foo, bar);
+        let bar = window!(foo, (1..3, 1..5));
     }
     
     #[test]
