@@ -44,6 +44,7 @@ macro_rules! matrix_index_methods {
         impl<T> Index<(usize, usize)> for $target_type {
             type Output = T;
 
+            #[inline]
             fn index<'a>(&'a self, index: (usize, usize)) -> &'a T {
                 match self.alignment {
                     Alignment::RowAligned => &self[index.0][index.1],
@@ -69,6 +70,7 @@ macro_rules! matrix_index_methods {
         }
 
         impl<T> IndexMut<(usize, usize)> for $target_type {
+            #[inline]
             fn index_mut<'a>(&'a mut self, index: (usize, usize)) -> &'a mut T {
                 match self.alignment {
                     Alignment::RowAligned => &mut self[index.0][index.1],
@@ -145,8 +147,9 @@ macro_rules! matrix_base_impls {
             pub fn new_from_vec(dimension: (usize, usize), vec: Vec<T>, alignment: Alignment)
                 -> Result<$target_type, MatrixError> {
                 if vec.len() != dimension.0 * dimension.1 {
-                    return Err(MatrixError::InitError("The supplied vec does not have the same \
-                    number of elements as the dimension specifies.".to_string()));
+                    return Err(MatrixError::InitError(format!("The supplied vec does not have the \
+                    same number of elements as the dimension specifies (len: {}, \
+                    supplied dimension: {:?}).", vec.len(), dimension)));
                 }
                 if alignment == Alignment::RowAligned {
                     Ok($name {
