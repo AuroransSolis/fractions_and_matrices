@@ -13,12 +13,18 @@ mod tests {
 
     #[test]
     fn wewe() {
-        let foo = matrix![
-             0  1  2  3  4;
-            15 16 17 18 19;
-            20 21 22 23 24
+        let matrix: Matrix<u32> = matrix![
+             0  1  2  3;
+             4  5  6  7;
+             8  9 10 11;
+            12 13 14 15
         ];
-        let bar = window!(foo, (1..3, 1..5));
+        let window_single_row = window!(matrix, row: 1);
+        let wsr: Matrix<u32> = Matrix::new_from_vec((1, 4), vec![4, 5, 6, 7], RowAligned).unwrap();
+        assert_eq!(window_single_row, wsr);
+        let window_single_column = window!(matrix, col: 3);
+        let wsc: Matrix<u32> = Matrix::new_from_vec((4, 1), vec![3, 7, 11, 15], RowAligned).unwrap();
+        assert_eq!(window_single_column, wsc);
     }
     
     #[test]
