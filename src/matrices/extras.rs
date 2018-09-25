@@ -234,8 +234,8 @@ pop_remove_rows_columns!{Matrix<T> {
     ];
     assert_eq!(foo, bar);
     ```",
-    "Removes a given row from a matrix, similarly to `remove()` for vectors. Panics if the specified
-    row is outside of the bounds of the matrix.
+    "Removes a row from a matrix, similarly to `remove()` for vectors. Panics if the specified row
+    is outside of the bounds of the matrix.
     # Example
     ```rust
     # #[macro_use] extern crate fractions_and_matrices;
@@ -343,8 +343,8 @@ pop_remove_rows_columns!{Matrix<T> {
     ];
     assert_eq!(foo, bar);
     ```",
-    "Removes a given row from an augmented matrix, similarly to `remove()` for vectors. Panics if
-    the specified row is outside of the bounds of the augmented matrix.
+    "Removes a row from an augmented matrix, similarly to `remove()` for vectors. Panics if the
+    specified row is outside of the bounds of the augmented matrix.
     # Example
     ```rust
     # #[macro_use] extern crate fractions_and_matrices;
@@ -554,7 +554,8 @@ impl<T: Clone + Display> AddElements<T> for Matrix<T> {
         }
     }
 
-    /// Attempts to push a row to a matrix.
+    /// Attempts to push a row to a matrix. Fails if the length of the row is not equal to the
+    /// number of columns in the matrix.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -595,7 +596,8 @@ impl<T: Clone + Display> AddElements<T> for Matrix<T> {
         Ok(())
     }
 
-    /// Attempts to push a column to a given matrix.
+    /// Attempts to push a column to a matrix. Fails if the length of the column is not equal to
+    /// the number of rows in the matrix.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -757,7 +759,8 @@ impl<T: Clone + Display> AddElements<T> for Matrix<T> {
         }
     }
 
-    /// Attempts to insert a row into a given matrix.
+    /// Attempts to insert a row into a matrix. Fails if the length of the row is not equal to the
+    /// number of columns in the matrix.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -813,7 +816,8 @@ impl<T: Clone + Display> AddElements<T> for Matrix<T> {
         Ok(())
     }
 
-    /// Attempts to insert a column into a matrix.
+    /// Attempts to insert a column into a matrix. Fails if the length of the column is not equal
+    /// to the number of rows in the matrix.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -961,7 +965,8 @@ impl<T: Clone + Display> AddElements<T> for Matrix<T> {
         }
     }
 
-    /// Attempts to insert multiple rows into a matrix.
+    /// Attempts to insert multiple rows into a matrix. Fails if the total length of the rows is
+    /// not divisible by the number of columns in the matrix.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1001,7 +1006,8 @@ impl<T: Clone + Display> AddElements<T> for Matrix<T> {
         Ok(())
     }
 
-    /// Attempts to push columns to a matrix.
+    /// Attempts to push columns to a matrix. Fails if the total length of the columns is not
+    /// divisible by the number of rows in the matrix.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1191,7 +1197,8 @@ impl<T: Clone + Display> AddElements<T> for Matrix<T> {
         }
     }
 
-    /// Attempts to insert a row into a given matrix.
+    /// Attempts to insert a row into a matrix. Fails if the length of the row is not equal to the
+    /// number of columns in the matrix.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1250,7 +1257,8 @@ impl<T: Clone + Display> AddElements<T> for Matrix<T> {
         Ok(())
     }
 
-    /// Attempts to insert columns into a given matrix.
+    /// Attempts to insert columns into a matrix. Fails if the length of the column is not equal to
+    /// the number of rows in the matrix.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1363,8 +1371,9 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
     }
 
     /// Pushes a column to an augmented matrix. Panics if the length of the column is not equal to
-    /// the number of rows in the augmented matrix. **NOTE:** the pushed column will be to the
-    /// **left** of the solution column.
+    /// the number of rows in the augmented matrix. 
+    /// **NOTE:** the pushed column will be to the **left** of the solution column. See example
+    /// below.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1413,8 +1422,8 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         }
     }
 
-    /// Attempts to push a row to an augmented matrix. Returns an error if the length of the
-    /// provided row is not equal to the number of columns in the augmented matrix.
+    /// Attempts to push a row to an augmented matrix. Fails if the length of the row is not equal
+    /// to the number of columns in the augmented matrix (including the solution column).
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1452,8 +1461,10 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         Ok(())
     }
 
-    /// Attempts to push a column to an augmented matrix. Returns an error if the length of the
-    /// provided column is not equal to the number of rows in the augmented matrix.
+    /// Attempts to push a column to an augmented matrix. Fails if the length of the column is not
+    /// equal to the number of rows in the augmented matrix.
+    /// **NOTE:** the pushed column will be to the **left** of the solution column. See example
+    /// below.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1501,8 +1512,8 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
     }
 
     /// Inserts a row at a given location in an augmented matrix. Panics on out of bounds or if the
-    /// length of the supplied row is not equal to the number of columns in the matrix, including
-    /// the solution column.
+    /// length of the supplied row is not equal to the number of columns in the augmented matrix,
+    /// including the solution column.
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1569,8 +1580,17 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         }
     }
 
-    /// Attempts to insert a column into an augmented matrix. Panics on out of bounds or if the
-    /// length of the column is not equal to the number of rows in the matrix.
+    /// Attempts to insert a column at a given location into an augmented matrix. Panics on out of
+    /// bounds or if the length of the column is not equal to the number of rows in the augmented
+    /// matrix.
+    /// 
+    /// **NOTE**: You cannot use this method to set the solution column, as it panics if you try to
+    /// insert a column at the location `augmented_matrix.num_columns()`. There is a method
+    /// dedicated to this specifically: see [`set_solution_column()`] and
+    /// [`try_set_solution_column()`].
+    /// 
+    /// [`set_solution_column()`]: ../base/struct.AugmentedMatrix.html#method.set_solution_column
+    /// [`try_set_solution_column()`]: ../base/struct.AugmentedMatrix.html#method.try_set_solution_column
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1635,7 +1655,8 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         }
     }
 
-    /// Attempts to insert a row into an augmented matrix.
+    /// Attempts to insert a row into an augmented matrix. Fails if the length of the row is not
+    /// equal to the number of columns in the augmented matrix (including the solution column).
     /// # Example
     /// ```rust
     /// # #[macro_use] extern crate fractions_and_matrices;
@@ -1691,15 +1712,49 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         Ok(())
     }
 
+    /// Attempts to insert a column into an augmented matrix. Fails if the length of the column is
+    /// not equal to the number of rows in the augmented matrix.
+    /// 
+    /// **NOTE**: You cannot use this method to set the solution column, as it returns an error if
+    /// you try to insert a column at the location `augmented_matrix.num_columns()`. There is a
+    /// method dedicated to this specifically: see [`set_solution_column()`] and
+    /// [`try_set_solution_column()`].
+    /// 
+    /// [`set_solution_column()`]: ../base/struct.AugmentedMatrix.html#method.set_solution_column
+    /// [`try_set_solution_column()`]: ../base/struct.AugmentedMatrix.html#method.try_set_solution_column
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 0 0 0 => 0;
+    ///     0 0 0 0 => 1;
+    ///     0 1 0 0 => 2;
+    ///     0 0 1 0 => 3;
+    ///     0 0 0 1 => 4
+    /// ];
+    /// assert!(foo.try_insert_column(1, [0, 1, 0, 0, 0]).is_ok());
+    /// let bar = augmented_matrix![
+    ///     1 0 0 0 0 => 0;
+    ///     0 1 0 0 0 => 1;
+    ///     0 0 1 0 0 => 2;
+    ///     0 0 0 1 0 => 3;
+    ///     0 0 0 0 1 => 4
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// assert!(foo.try_insert_column(6, [0, 0, 0, 0, 0]).is_err());
+    /// assert!(foo.try_insert_column(2, [0, 0, 0]).is_err());
+    /// ```
     fn try_insert_column<R: AsRef<[T]>>(&mut self, location: usize, column: R) -> Result<(), MatrixError> {
+        if !(location < self.num_columns()) {
+            return Err(MatrixError::FunctionError("Attemped to add a column at an invalid \
+                    index.".to_string()));
+        }
         let column = column.as_ref();
         if column.len() != self.num_rows() {
             return Err(MatrixError::FunctionError("Attempted to add a column with an \
                     incorrect number of elements.".to_string()));
-        }
-        if !(location <= self.num_columns()) {
-            return Err(MatrixError::FunctionError("Attemped to add a column at an invalid \
-                    index.".to_string()));
         }
         if self.is_column_aligned() {
             let new = {
@@ -1713,7 +1768,7 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
             self.rows += 1;
         } else {
             for r in (0..self.num_rows()).rev() {
-                let insert_loc = self.num_columns() * r + location;
+                let insert_loc = (self.num_columns() + 1) * r + location;
                 self.matrix.insert(insert_loc, column[r].clone());
             }
             self.columns += 1;
@@ -1721,6 +1776,37 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         Ok(())
     }
 
+    /// Pushes rows to an augmented matrix. Panics if the total length of the rows is not divisible
+    /// by the number of columns in the augmented matrix (including the solution column).
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 0 0 0 0 0 0 => 0;
+    ///     0 0 1 0 0 0 0 => 1
+    /// ];
+    /// foo.push_rows([0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 0, 0, 0, 0, 1, 4]);
+    /// let bar = augmented_matrix![
+    ///     1 0 0 0 0 0 0 => 0;
+    ///     0 0 1 0 0 0 0 => 1;
+    ///     0 0 0 1 0 0 0 => 2;
+    ///     0 0 0 0 1 0 0 => 3;
+    ///     0 0 0 0 0 0 1 => 4
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// ```
+    /// # Panics
+    /// ```should_panic
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     0 0 1 => 2
+    /// ];
+    /// foo.push_rows([0, 1, 0, 1, 0, 0]);
+    /// ```
     fn push_rows<R: AsRef<[T]>>(&mut self, rows: R) {
         let rows = rows.as_ref();
         assert_eq!(rows.len() % (self.num_columns() + 1), 0);
@@ -1735,6 +1821,42 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         }
     }
 
+    /// Pushes columns to an augmented matrix. Panics if the total length of the columns is not
+    /// divisible by the number of rows in the augmented matrix.
+    /// 
+    /// **NOTE**: The columns are pushed to the left of the solution column.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     0 0 => 0;
+    ///     0 0 => 1;
+    ///     0 1 => 2;
+    ///     1 0 => 3
+    /// ];
+    /// foo.push_columns([0, 1, 0, 0, 1, 0, 0, 0]);
+    /// let bar = augmented_matrix![
+    ///     0 0 0 1 => 0;
+    ///     0 0 1 0 => 1;
+    ///     0 1 0 0 => 2;
+    ///     1 0 0 0 => 3
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// ```
+    /// # Panics
+    /// ```should_panic
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 => 0;
+    ///     0 => 0;
+    ///     0 => 0
+    /// ];
+    /// foo.push_columns([0, 1, 0, 0]);
+    /// ```
     fn push_columns<R: AsRef<[T]>>(&mut self, columns: R) {
         let columns = columns.as_ref();
         assert_eq!(columns.len() % self.num_rows(), 0);
@@ -1746,12 +1868,31 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
             self.rows += columns.len() / self.num_columns();
         } else {
             for c in 0..columns.len() / self.num_rows() {
-                let columns_range = c * self.num_columns()..(c + 1) * self.num_columns();
+                let columns_range = c * self.num_rows()..(c + 1) * self.num_rows();
                 self.push_column(&columns[columns_range]);
             }
         }
     }
 
+    /// Attempts to push rows to an augmented matrix. Fails if the total length of the rows is not
+    /// divisible by the number of columns in the augmented matrix (including the solution column).
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 0 0 0 => 0
+    /// ];
+    /// assert!(foo.try_push_rows([0, 1, 0, 0, 1, 0, 0, 0, 1, 2]).is_ok());
+    /// let bar = augmented_matrix![
+    ///     1 0 0 0 => 0;
+    ///     0 1 0 0 => 1;
+    ///     0 0 0 1 => 2
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// assert!(foo.try_push_rows([0, 0, 1, 0, 3, 0, 0, 0]).is_err());
+    /// ```
     fn try_push_rows<R: AsRef<[T]>>(&mut self, rows: R) -> Result<(), MatrixError> {
         let rows = rows.as_ref();
         if rows.len() % (self.num_columns() + 1) != 0 {
@@ -1771,6 +1912,29 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         Ok(())
     }
 
+    /// Attempts to push columns to an augmented matrix. Fails if the total length of the columns
+    /// is not divisible by the number of rows in the augmented matrix.
+    /// 
+    /// **NOTE**: The columns are pushed to the left of the solution column.
+    /// # Example
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 0 => 0;
+    ///     0 1 => 1;
+    ///     0 0 => 2
+    /// ];
+    /// assert!(foo.try_push_columns([0, 0, 1, 0, 0, 1]).is_ok());
+    /// let bar = augmented_matrix![
+    ///     1 0 0 0 => 0;
+    ///     0 1 0 0 => 1;
+    ///     0 0 1 1 => 2
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// assert!(foo.try_push_columns([0, 1, 2, 3, 4]).is_err());
+    /// ```
     fn try_push_columns<R: AsRef<[T]>>(&mut self, columns: R) -> Result<(), MatrixError> {
         let columns = columns.as_ref();
         if columns.len() % self.num_rows() != 0 {
@@ -1797,6 +1961,47 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         Ok(())
     }
 
+    /// Inserts rows at a location into an augmented matrix. Panics on out of bounds or if the total
+    /// length of the rows is not divisible by the number of columns in the matrix.
+    /// # Examples
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 0 0 0 0 => 0;
+    ///     0 0 0 0 1 => 3
+    /// ];
+    /// foo.insert_rows(1, [0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 2]);
+    /// let bar = augmented_matrix![
+    ///     1 0 0 0 0 => 0;
+    ///     0 1 0 1 0 => 1;
+    ///     0 0 1 0 0 => 2;
+    ///     0 0 0 0 1 => 3
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// ```
+    /// # Panics
+    /// ```should_panic
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 0 0 0 0 => 0;
+    ///     0 0 0 0 1 => 3
+    /// ];
+    /// foo.insert_rows(3, [0, 1, 2, 3, 4, 5]);
+    /// ```
+    /// ```should_panic
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 0 0 0 0 => 0;
+    ///     0 0 0 0 1 => 3
+    /// ];
+    /// foo.insert_rows(1, [0, 1, 2]);
+    /// ```
     fn insert_rows<R: AsRef<[T]>>(&mut self, location: usize, rows: R) {
         let rows = rows.as_ref();
         assert_eq!(rows.len() % (self.num_columns() + 1), 0);
@@ -1823,6 +2028,61 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         }
     }
 
+    /// Inserts columns at a location into an augmented matrix. Panics on out of bounds or if the
+    /// total length of the columns is not divisible by the number of rows in the augmented matrix.
+    /// 
+    /// **NOTE**: You cannot use this method to set the solution column, as it returns an error if
+    /// you try to insert a column at the location `augmented_matrix.num_columns()`. There is a
+    /// method dedicated to this specifically: see [`set_solution_column()`] and
+    /// [`try_set_solution_column()`].
+    /// 
+    /// [`set_solution_column()`]: ../base/struct.AugmentedMatrix.html#method.set_solution_column
+    /// [`try_set_solution_column()`]: ../base/struct.AugmentedMatrix.html#method.try_set_solution_column
+    /// # Examples
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 4 => 0;
+    ///     0 3 => 1;
+    ///     0 2 => 2;
+    ///     0 1 => 3
+    /// ];
+    /// foo.insert_columns(1, [0, 1, 0, 0, 0, 1, 1, 0]);
+    /// let bar = augmented_matrix![
+    ///     1 0 0 4 => 0;
+    ///     0 1 1 3 => 1;
+    ///     0 0 1 2 => 2;
+    ///     0 0 0 1 => 3
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// ```
+    /// # Panics
+    /// ```should_panic
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 4 => 0;
+    ///     0 3 => 1;
+    ///     0 2 => 2;
+    ///     0 1 => 3
+    /// ];
+    /// foo.insert_columns(4, [0, 1, 0, 0, 0, 1, 1, 0]);
+    /// ```
+    /// ```should_panic
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 4 => 0;
+    ///     0 3 => 1;
+    ///     0 2 => 2;
+    ///     0 1 => 3
+    /// ];
+    /// foo.insert_columns(1, [0, 1, 0, 0, 0, 1]);
+    /// ```
     fn insert_columns<R: AsRef<[T]>>(&mut self, location: usize, columns: R) {
         let columns = columns.as_ref();
         assert_eq!(columns.len() % self.num_rows(), 0);
@@ -1836,19 +2096,42 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
                 left
             };
             self.matrix = new;
-            self.columns += columns.len() / self.num_columns();
+            self.columns += columns.len() / (self.num_columns() + 1);
         } else {
-            for c in (0..columns.len() / self.num_rows()).rev() {
-                for r in (0..self.num_rows()).rev() {
-                    let insert_loc = self.num_columns() * c + location;
-                    let columns_loc = r * self.num_rows() + c;
-                    self.matrix.insert(insert_loc, columns[columns_loc].clone());
+            for l in (0..columns.len() / self.num_rows()).rev() {
+                let cs_range: Range<usize> = l * self.num_rows()..(l + 1) * self.num_rows();
+                for (i, e) in columns[cs_range].iter().enumerate().rev() {
+                    let insert_loc = i % self.num_rows() * (self.num_columns() + 1) + location;
+                    self.matrix.insert(insert_loc, e.clone());
                 }
+                self.columns += 1;
             }
-            self.columns += columns.len() / self.num_rows();
         }
     }
 
+    /// Attempts to insert rows at a location into an augmented matrix. Fails on out of bounds or if
+    /// the total length of the rows is not divisible by the number of columns in the augmented
+    /// matrix.
+    /// # Examples
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 0 0 0 0 => 0;
+    ///     0 0 1 0 0 => 3
+    /// ];
+    /// assert!(foo.try_insert_rows(1, [0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 2]).is_ok());
+    /// let bar = augmented_matrix![
+    ///     1 0 0 0 0 => 0;
+    ///     0 1 0 1 0 => 1;
+    ///     0 0 1 1 0 => 2;
+    ///     0 0 1 0 0 => 3
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// assert!(foo.try_insert_rows(6, [0, 1, 2, 3, 4, 5]).is_err());
+    /// assert!(foo.try_insert_rows(1, [0, 1, 2]).is_err());
+    /// ```
     fn try_insert_rows<R: AsRef<[T]>>(&mut self, location: usize, rows: R) -> Result<(), MatrixError> {
         let rows = rows.as_ref();
         if rows.len() % (self.num_columns() + 1) != 0 {
@@ -1883,6 +2166,39 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
         Ok(())
     }
 
+    /// Attempts to insert columns at a location into an augmented matrix. Fails on out of bounds or
+    /// if the total length of the columns is not divisible by the number of rows in the augmented
+    /// matrix.
+    /// 
+    /// **NOTE**: You cannot use this method to set the solution column, as it returns an error if
+    /// you try to insert a column at the location `augmented_matrix.num_columns()`. There is a
+    /// method dedicated to this specifically: see [`set_solution_column()`] and
+    /// [`try_set_solution_column()`].
+    /// 
+    /// [`set_solution_column()`]: ../base/struct.AugmentedMatrix.html#method.set_solution_column
+    /// [`try_set_solution_column()`]: ../base/struct.AugmentedMatrix.html#method.try_set_solution_column
+    /// # Examples
+    /// ```rust
+    /// # #[macro_use] extern crate fractions_and_matrices;
+    /// # use fractions_and_matrices::matrices::base::AugmentedMatrix;
+    /// # use fractions_and_matrices::matrices::extras::AddElements;
+    /// let mut foo = augmented_matrix![
+    ///     1 4 => 0;
+    ///     0 3 => 1;
+    ///     0 2 => 2;
+    ///     0 1 => 3
+    /// ];
+    /// foo.insert_columns(1, [0, 1, 0, 0, 0, 1, 1, 0]);
+    /// let bar = augmented_matrix![
+    ///     1 0 0 4 => 0;
+    ///     0 1 1 3 => 1;
+    ///     0 0 1 2 => 2;
+    ///     0 0 0 1 => 3
+    /// ];
+    /// assert_eq!(foo, bar);
+    /// assert!(foo.try_insert_columns(1, [0, 1, 0, 0, 0, 1]).is_err());
+    /// assert!(foo.try_insert_columns(7, [0, 1, 0, 0, 0, 1, 1, 0]).is_err());
+    /// ```
     fn try_insert_columns<R: AsRef<[T]>>(&mut self, location: usize, columns: R) -> Result<(), MatrixError> {
         let columns = columns.as_ref();
         if columns.len() % self.num_rows() != 0 {
@@ -1905,14 +2221,14 @@ impl<T: Clone> AddElements<T> for AugmentedMatrix<T> {
             self.matrix = new;
             self.columns += columns.len() / self.num_columns();
         } else {
-            for c in (0..columns.len() / self.num_rows()).rev() {
-                for r in (0..self.num_rows()).rev() {
-                    let insert_loc = self.num_columns() * c + location;
-                    let columns_loc = r * self.num_rows() + c;
-                    self.matrix.insert(insert_loc, columns[columns_loc].clone());
+            for l in (0..columns.len() / self.num_rows()).rev() {
+                let cs_range: Range<usize> = l * self.num_rows()..(l + 1) * self.num_rows();
+                for (i, e) in columns[cs_range].iter().enumerate().rev() {
+                    let insert_loc = i % self.num_rows() * (self.num_columns() + 1) + location;
+                    self.matrix.insert(insert_loc, e.clone());
                 }
+                self.columns += 1;
             }
-            self.columns += columns.len() / self.num_rows();
         }
         Ok(())
     }
