@@ -9,7 +9,7 @@ use matrices::transforms::Inverse;
 
 macro_rules! partial_eq_impl {
     ($($target_type:ty | $ref_target_type:ty),*) => ($(
-        impl<T: PartialEq + Display> PartialEq for $target_type {
+        impl<T: PartialEq> PartialEq for $target_type {
             fn eq(&self, other: $ref_target_type) -> bool {
                 if self.num_columns() != other.num_columns() {
                     return false;
