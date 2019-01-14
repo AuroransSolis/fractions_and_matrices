@@ -3,11 +3,33 @@
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Rem, RemAssign};
 use std::fmt;
 
-#[derive(Clone, Copy, PartialOrd, Debug)]
+use num::{Zero, One};
+
+#[derive(Clone, Copy, Debug)]
 pub struct Fraction {
     pub num: i64,
     pub den: i64,
     pub(crate) ud: bool
+}
+
+impl Zero for Fraction {
+    fn zero() -> Self {
+        Fraction::new(0, 1)
+    }
+
+    fn is_zero(&self) -> bool {
+        *self == Fraction::new(0, 1)
+    }
+}
+
+impl One for Fraction {
+    fn one() -> Self {
+        Fraction::new(1, 1)
+    }
+
+    fn is_one(&self) -> bool {
+        *self == Fraction::new(1, 1)
+    }
 }
 
 impl fmt::Display for Fraction {

@@ -268,13 +268,14 @@ impl<'a, 'b, T, U> TryMulMatrices<&'b Matrix<U>> for &'a Matrix<T>
 impl<T, U> TryDivMatrices<Matrix<U>> for Matrix<T>
     where
         Matrix<T>: TryMulMatrices<Matrix<U>>,
-        Matrix<U>: Inverse,
+        Matrix<U>: Inverse + Clone,
         <Matrix<T> as TryMulMatrices<Matrix<U>>>::Output: Into<Result<Matrix<T>, MatrixError>> {
     type Output = Result<Matrix<T>, MatrixError>;
 
     fn try_div(self, other: Matrix<U>) -> Result<Matrix<T>, MatrixError> {
         try_mul_div_valid_operation_check(self.dimension(), other.dimension())?;
-        let inv = other.try_inverse()?;
+        let mut inv = other.clone();
+        inv.try_inverse()?;
         (self.try_mul(inv)).into()
     }
 }
@@ -296,7 +297,7 @@ impl<'a, T, U> TryDivMatrices<Matrix<U>> for &'a Matrix<T>
     where
         T: Clone,
         Matrix<T>: TryMulMatrices<Matrix<U>>,
-        Matrix<U>: Inverse,
+        Matrix<U>: Inverse + Clone,
         <Matrix<T> as TryMulMatrices<Matrix<U>>>::Output: Into<Result<Matrix<T>, MatrixError>> {
     type Output = Result<Matrix<T>, MatrixError>;
 
@@ -452,7 +453,8 @@ impl<T, U> TryDivAssignMatrices<Matrix<U>> for Matrix<T>
         <Matrix<T> as TryDivMatrices<Matrix<U>>>::Output: Into<Result<Matrix<T>, MatrixError>> {
     fn try_div_assign(&mut self, other: Matrix<U>) -> Result<(), MatrixError> {
         try_mul_div_valid_operation_check(self.dimension(), other.dimension())?;
-        let inv = other.clone().try_inverse()?;
+        let mut inv = other.clone();
+        inv.try_inverse()?;
         self.try_mul_assign(inv)
     }
 }
@@ -468,7 +470,8 @@ impl<'a, T, U> TryDivAssignMatrices<&'a Matrix<U>> for Matrix<T>
         <Matrix<T> as TryDivMatrices<Matrix<U>>>::Output: Into<Result<Matrix<T>, MatrixError>> {
     fn try_div_assign(&mut self, other: &'a Matrix<U>) -> Result<(), MatrixError> {
         try_mul_div_valid_operation_check(self.dimension(), other.dimension())?;
-        let inv = other.clone().try_inverse()?;
+        let mut inv = other.clone();
+        inv.try_inverse()?;
         self.try_mul_assign(inv)
     }
 }

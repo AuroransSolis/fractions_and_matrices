@@ -271,29 +271,30 @@ impl<'a, 'b, T, U> Mul<&'b Matrix<U>> for &'a Matrix<T>
 
 impl<T, U> Div<Matrix<U>> for Matrix<T>
     where
-        Matrix<U>: Inverse,
+        Matrix<U>: Inverse + Clone,
         Matrix<T>: Mul<Matrix<U>>,
         <Matrix<T> as Mul<Matrix<U>>>::Output: Into<Matrix<T>> {
     type Output = Matrix<T>;
 
     fn div(self, rhs: Matrix<U>) -> Self {
         mul_div_valid_operation_check(self.dimension(), rhs.dimension());
-        let inv = rhs.inverse();
+        let mut inv = rhs.clone();
+        inv.inverse();
         (self * inv).into()
     }
 }
 
 impl<'a, T, U> Div<&'a Matrix<U>> for Matrix<T>
     where
-        U: Clone,
-        Matrix<U>: Inverse,
+        Matrix<U>: Inverse + Clone,
         Matrix<T>: Mul<Matrix<U>>,
         <Matrix<T> as Mul<Matrix<U>>>::Output: Into<Matrix<T>> {
     type Output = Matrix<T>;
 
     fn div(self, rhs: &'a Matrix<U>) -> Matrix<T> {
         mul_div_valid_operation_check(self.dimension(), rhs.dimension());
-        let inv = rhs.clone().inverse();
+        let mut inv = rhs.clone();
+        inv.inverse();
         (self * inv).into()
     }
 }
@@ -301,30 +302,30 @@ impl<'a, T, U> Div<&'a Matrix<U>> for Matrix<T>
 impl<'a, T, U> Div<Matrix<U>> for &'a Matrix<T>
     where
         T: Clone,
-        Matrix<U>: Inverse,
+        Matrix<U>: Inverse + Clone,
         Matrix<T>: Mul<Matrix<U>>,
         <Matrix<T> as Mul<Matrix<U>>>::Output: Into<Matrix<T>> {
     type Output = Matrix<T>;
 
     fn div(self, rhs: Matrix<U>) -> Matrix<T> {
         mul_div_valid_operation_check(self.dimension(), rhs.dimension());
-        let inv = rhs.inverse();
+        let mut inv = rhs.clone();
+        inv.inverse();
         (self.clone() * inv).into()
     }
 }
 
 impl<'a, 'b, T, U> Div<&'b Matrix<U>> for &'a Matrix<T>
     where
-        T: Clone,
-        U: Clone,
-        Matrix<U>: Inverse,
-        Matrix<T>: Mul<Matrix<U>>,
+        Matrix<U>: Inverse + Clone,
+        Matrix<T>: Mul<Matrix<U>> + Clone,
         <Matrix<T> as Mul<Matrix<U>>>::Output: Into<Matrix<T>> {
     type Output = Matrix<T>;
 
     fn div(self, rhs: &'b Matrix<U>) -> Matrix<T> {
         mul_div_valid_operation_check(self.dimension(), rhs.dimension());
-        let inv = rhs.clone().inverse();
+        let mut inv = rhs.clone();
+        inv.inverse();
         (self.clone() * inv).into()
     }
 }
@@ -419,10 +420,11 @@ impl<T, U> MulAssign<Matrix<U>> for Matrix<T>
 matrix_operator_overload_assign_impl!{MulAssign, mul_assign, *=}
 
 impl<T, U> DivAssign<Matrix<U>> for Matrix<T>
-    where Matrix<U>: Inverse, Matrix<T>: MulAssign<Matrix<U>>, {
+    where Matrix<U>: Inverse + Clone, Matrix<T>: MulAssign<Matrix<U>>, {
     fn div_assign(&mut self, rhs: Matrix<U>) {
         mul_div_valid_operation_check(self.dimension(), rhs.dimension());
-        let inv = rhs.inverse();
+        let mut inv = rhs.clone();
+        inv.inverse();
         *self *= inv;
     }
 }

@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::cmp::{PartialEq, PartialOrd, Ordering};
 
 use fractions::base::{Fraction, get_lcm};
 
@@ -6,24 +6,33 @@ impl Eq for Fraction {}
 
 impl PartialEq for Fraction {
     fn eq(&self, other: &Fraction) -> bool {
-        let lcm = get_lcm(self.den, other.den) as i64;
-        let self_mult = lcm / self.den;
-        let other_mult = lcm / other.den;
-        let s_num = self.num * self_mult;
-        let o_num = other.num * other_mult;
-        s_num == o_num
+        if self.ud || other.ud {
+            return false;
+        }
+        let lcm = get_lcm(self.den, other.den);
+        let self_mul = lcm / self.den;
+        let other_mul = lcm / other.den;
+        self.num * self_mul == other.num * other_mul
     }
 }
 
-impl Ord for Fraction {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if self.den == other.den {
-            return self.num.cmp(&other.num);
+impl PartialOrd for Fraction {
+    fn partial_cmp(&self, other: &Fraction) -> Option<Ordering> {
+        if self.ud || other.ud {
+            return None;
         }
-        // Compare numerators for equal denominators
+        if self == other {
+            return Some(Ordering::Equal);
+        }
         let lcm = get_lcm(self.den, other.den);
-        let self_lcm = self.num * lcm / self.den;
-        let other_lcm = other.num * lcm / other.den;
-        self_lcm.cmp(&other_lcm)
+        let self_mul = lcm / self.den;
+        let other_mul = lcm / other.den;
+        if self.num * self_mul < other.num * other_mul {
+            Some(Ordering::Less)
+        } else if self.num * self_mul > other.num * other_mul {
+            Some(Ordering::Greater)
+        } else {
+            Some(Ordering::Equal)
+        }
     }
 }

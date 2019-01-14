@@ -10,18 +10,26 @@ use std::marker::Sized;
 
 use matrices::base::{Matrix, AugmentedMatrix, MatrixError, Unit};
 
+/// Implements the addition row operation. Always done in the form, for rows `n` and `m`,
+/// `Rn + Rm => Rn`. Row `n` is the `target` and row `m` is the `tool`.
 pub trait RowOpAdd {
     fn row_op_add(&mut self, target: usize, tool: usize);
 }
 
+/// Implements the subtraction row operation. Always done in the form, for rows `n` and `m`,
+/// `Rn - Rm => Rn`. Row 'n' is the 'target' and row 'm' is the 'tool'.
 pub trait RowOpSub {
     fn row_op_sub(&mut self, target: usize, tool: usize);
 }
 
+/// Implements the division row operation. Always done in the form, for row `n` and scalar
+/// `k`, `Rn / k => Rn`. Row 'n' is the `target` and `k` is the `tool`.
 pub trait RowOpMul<Scalar> {
     fn row_op_mul(&mut self, target: usize, tool: Scalar);
 }
 
+/// Implements the division row operation. Always done in the form, for row `n` and
+/// scalar `k`, `Rn / k => Rn`. Row `n` is the `target`, and `k` is the `tool`.
 pub trait RowOpDiv<Scalar> {
     fn row_op_div(&mut self, target: usize, tool: Scalar);
 }
@@ -38,81 +46,91 @@ fn gcd<T: Gcd + Zero + Clone>(a: T, b: T) -> T
     }
 }
 
+/// This trait is used to simplify rows - in short, it tries to find the GCD of all the numbers in
+/// the row, and if one exists, divides all the numbers in the row by said GCD.
 pub trait Simplify {
     fn simplify_row(&mut self, row: usize);
     fn simplify_rows(&mut self, rows: Range<usize>);
     fn simplify_matrix(&mut self);
 }
 
+/// Similar to the Simplify trait above, but these methods return various wrapped versions of
+/// 'String' to tell you what steps were taken. These steps are generated using the `Display` trait.
 pub trait SimplifyGetStepsDisplay {
     fn simplify_row_get_steps_ds(&mut self, row: usize) -> Option<String>;
     fn simplify_rows_get_steps_ds(&mut self, rows: Range<usize>) -> Option<Vec<Option<String>>>;
     fn simplify_matrix_get_steps_ds(&mut self) -> Option<Vec<Option<String>>>;
 }
 
+
+/// Similar to the Simplify trait above, but these methods return various wrapped versions of
+/// 'String' to tell you what steps were taken. These steps are generated using the `Debug` trait.
 pub trait SimplifyGetStepsDebug {
     fn simplify_row_get_steps_db(&mut self, row: usize) -> Option<String>;
     fn simplify_rows_get_steps_db(&mut self, rows: Range<usize>) -> Option<Vec<Option<String>>>;
     fn simplify_matrix_get_steps_db(&mut self) -> Option<Vec<Option<String>>>;
 }
 
+/// Required traits for simplification
 pub trait SimplifyTraits: Div + DivAssign + Gcd + Zero + One + PartialEq {}
 impl<T: Div + DivAssign + Gcd + Zero + One + PartialEq> SimplifyTraits for T {}
 
+/// Trait to put a(n augmented) matrix in REF form and check whether a(n augmented) matrix is in
+/// REF form.
 pub trait REF {
     fn gaussian_elim(&mut self);
     fn is_row_reduced(&self) -> bool;
 }
 
+/// Trait to put a(n augmented) matrix in REF form. Puts steps in an `Option<Vec<String>>`, where
+/// the `String`s are created using the `Display` trait.
 pub trait REFDisplay {
     fn gaussian_elim_display(&mut self) -> Option<Vec<String>>;
 }
 
+/// Trait to put a(n augmented) matrix in REF form. Puts steps in an `Option<Vec<String>>`, where
+/// the `String`s are created using the `Debug` trait.
 pub trait REFDebug {
     fn gaussian_elim_debug(&mut self) -> Option<Vec<String>>;
 }
 
+/// Trait to put a(n augmented) matrix in RREF form and check whether a(n augmented) matrix is in
+/// RREF form.
 pub trait RREF {
     fn gauss_jordan(&mut self);
     fn is_gauss_jordan(&self) -> bool;
 }
 
+/// Trait to put a(n augmented) matrix in RREF form. Puts steps in an `Option<Vec<String>>`, where
+/// the `String`s are created using the `Display` trait.
 pub trait RREFDisplay {
     fn gauss_jordan_display(&mut self) -> Option<Vec<String>>;
 }
 
+/// Trait to put a(n augmented) matrix in RREF form. Puts steps in an `Option<Vec<String>>`, where
+/// the `String`s are created using the `Debug` trait.
 pub trait RREFDebug {
     fn gauss_jordan_debug(&mut self) -> Option<Vec<String>>;
 }
 
+/// Trait to (try to) find the inverse of a(n augmented) matrix.
 pub trait Inverse where Self: Sized {
-    fn inverse(&self) -> Self;
-    fn try_inverse(&self) -> Result<Self, MatrixError>;
+    fn inverse(&mut self);
+    fn try_inverse(&mut self) -> Result<(), MatrixError>;
 }
 
+/// Trait to (try to) find the inverse of a(n augmented) matrix. Returns the steps as an
+/// `Option<Vec<String>>`, generated with the `Display` trait.
 pub trait InverseDisplay where Self: Sized {
-    fn inverse_display(&self) -> (Self, Option<Vec<String>>);
-    fn try_inverse_display(&self) -> Result<(Self, Option<Vec<String>>), MatrixError>;
+    fn inverse_display(&mut self) -> Option<Vec<String>>;
+    fn try_inverse_display(&mut self) -> Result<Option<Vec<String>>, MatrixError>;
 }
 
+/// Trait to (try to) find the inverse of a(n augmented) matrix. Returns the steps as an
+/// `Option<Vec<String>>`, generated with the `Debug` trait.
 pub trait InverseDebug where Self: Sized {
-    fn inverse_debug(&self) -> (Self, Option<Vec<String>>);
-    fn try_inverse_debug(&self) -> Result<(Self, Option<Vec<String>>), MatrixError>;
-}
-
-pub trait InverseAssign where Self: Sized {
-    fn inverse_assign(&mut self);
-    fn try_inverse_assign(&mut self) -> Result<(), MatrixError>;
-}
-
-pub trait InverseAssignDisplay where Self: Sized {
-    fn inverse_assign_display(&mut self) -> Option<Vec<String>>;
-    fn try_inverse_assign_display(&mut self) -> Result<Option<Vec<String>>, MatrixError>;
-}
-
-pub trait InverseAssignDebug where Self: Sized {
-    fn inverse_assign_debug(&mut self) -> Option<Vec<String>>;
-    fn try_inverse_assign_debug(&mut self) -> Result<Option<Vec<String>>, MatrixError>;
+    fn inverse_debug(&mut self) -> Option<Vec<String>>;
+    fn try_inverse_debug(&mut self) -> Result<Option<Vec<String>>, MatrixError>;
 }
 
 macro_rules! transforms_impl {
@@ -213,7 +231,7 @@ macro_rules! transforms_impl {
                         self[(row, i)] /= row_gcd.clone();
                     }
                 }
-                Some(format!("R{} / {} → R{0}", row, row_gcd))
+                Some(format!("R{} / {} -> R{0}", row, row_gcd))
             }
 
             fn simplify_rows_get_steps_ds(&mut self, rows: Range<usize>)
@@ -259,7 +277,7 @@ macro_rules! transforms_impl {
                         self[(row, i)] /= row_gcd.clone();
                     }
                 }
-                Some(format!("R{} / {:?} → R{0}", row, row_gcd))
+                Some(format!("R{} / {:?} -> R{0}", row, row_gcd))
             }
 
             fn simplify_rows_get_steps_db(&mut self, rows: Range<usize>)
@@ -363,7 +381,7 @@ macro_rules! transforms_impl {
                                 continue;
                             }
                             let amt2 = (amt1 / self[(c, c)].clone()).into();
-                            steps.push(format!("R{} - ({}) * R{} → R{0}", r, amt2, c));
+                            steps.push(format!("R{} - ({}) * R{} -> R{0}", r, amt2, c));
                             (*self).row_op_mul(c, amt2.clone());
                             (*self).row_op_sub(r, c);
                             (*self).row_op_div(c, amt2);
@@ -371,17 +389,17 @@ macro_rules! transforms_impl {
                             if amt1.is_one() {
                                 continue;
                             } else if !amt1.is_zero() {
-                                steps.push(format!("R{} / ({}) → R{0}", r, amt1));
+                                steps.push(format!("R{} / ({}) -> R{0}", r, amt1));
                                 (*self).row_op_div(r, amt1);
                             } else if self[(r, c)].is_zero() {
                                 if self[(c, c)].is_zero() {
                                     continue;
                                 }
                                 (*self).row_op_add(r, c);
-                                steps.push(format!("R{} + R{} → R{0}", r, c));
+                                steps.push(format!("R{} + R{} -> R{0}", r, c));
                                 if !self[(r, c)].is_one() {
                                     let src = self[(r, c)].clone();
-                                    steps.push(format!("R{} / ({}) → R{0}", r, src));
+                                    steps.push(format!("R{} / ({}) -> R{0}", r, src));
                                     (*self).row_op_div(r, src);
                                 }
                             }
@@ -414,7 +432,7 @@ macro_rules! transforms_impl {
                             }
                             let amt2 = (amt1 / self[(c, c)].clone()).into();
                             let step_no = steps.len();
-                            steps.push(format!("Step {}: R{} - ({:?}) * R{} → R{0}", step_no, r,
+                            steps.push(format!("Step {}: R{} - ({:?}) * R{} -> R{0}", step_no, r,
                                                amt2, c));
                             (*self).row_op_mul(c, amt2.clone());
                             (*self).row_op_sub(r, c);
@@ -424,7 +442,7 @@ macro_rules! transforms_impl {
                                 continue;
                             } else if !amt1.is_zero() {
                                 let step_no = steps.len();
-                                steps.push(format!("Step {}: R{} / ({:?}) → R{0}", step_no, r,
+                                steps.push(format!("Step {}: R{} / ({:?}) -> R{0}", step_no, r,
                                                    amt1));
                                 (*self).row_op_div(r, amt1);
                             } else if self[(r, c)].is_zero() {
@@ -433,11 +451,11 @@ macro_rules! transforms_impl {
                                 }
                                 (*self).row_op_add(r, c);
                                 let step_no = steps.len();
-                                steps.push(format!("Step {}: R{} + R{} → R{0}", step_no, r, c));
+                                steps.push(format!("Step {}: R{} + R{} -> R{0}", step_no, r, c));
                                 if !self[(r, c)].is_one() {
                                     let src = self[(r, c)].clone();
                                     let step_no = steps.len();
-                                    steps.push(format!("Step {}: R{} / ({:?}) → R{0}", step_no,
+                                    steps.push(format!("Step {}: R{} / ({:?}) -> R{0}", step_no,
                                                        r, src));
                                     (*self).row_op_div(r, src);
                                 }
@@ -514,7 +532,7 @@ macro_rules! transforms_impl {
                             continue;
                         }
                         let self_rc = self[(r, c)].clone();
-                        steps.push(format!("R{} - ({}) * R{} → R{0}", r, self_rc, c));
+                        steps.push(format!("R{} - ({}) * R{} -> R{0}", r, self_rc, c));
                         (*self).row_op_mul(c, self_rc.clone());
                         (*self).row_op_sub(r, c);
                         (*self).row_op_div(c, self_rc);
@@ -548,7 +566,7 @@ macro_rules! transforms_impl {
                         }
                         let self_rc = self[(r, c)].clone();
                         let step_no = steps.len();
-                        steps.push(format!("Step {}: R{} - ({:?}) * R{} → R{0}", step_no, r,
+                        steps.push(format!("Step {}: R{} - ({:?}) * R{} -> R{0}", step_no, r,
                                            self_rc, c));
                         (*self).row_op_mul(c, self_rc.clone());
                         (*self).row_op_sub(r, c);
@@ -563,448 +581,7 @@ macro_rules! transforms_impl {
             where
                 $target_type: REF + RowOpAdd + RowOpSub + RowOpMul<T> + RowOpDiv<T> + Unit,
                  <T as Div>::Output: Into<T> {
-            fn inverse(&self) -> Self {
-                assert!(self.is_unit_dimension());
-                let mut s = self.clone();
-                let mut unit = $name::unit(self.rows);
-                for r in 0..s.num_rows() {
-                    for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
-                        if c < r {
-                            if amt1.is_zero() {
-                                continue;
-                            }
-                            if s[(c, c)].is_zero() {
-                                continue;
-                            }
-                            let amt2 = (amt1 / s[(c, c)].clone()).into();
-                            s.row_op_mul(c, amt2.clone());
-                            unit.row_op_mul(c, amt2.clone());
-                            s.row_op_sub(r, c);
-                            unit.row_op_sub(r, c);
-                            s.row_op_div(c, amt2.clone());
-                            unit.row_op_div(c, amt2);
-                        } else if c == r {
-                            if amt1.is_one() {
-                                continue;
-                            } else if !amt1.is_zero() {
-                                s.row_op_div(r, amt1.clone());
-                                unit.row_op_div(r, amt1);
-                            } else if amt1.is_zero() {
-                                if s[(c, c)].is_zero() {
-                                    continue;
-                                }
-                                s.row_op_add(r, c);
-                                unit.row_op_add(r, c);
-                                if !s[(r, c)].is_one() {
-                                    let src = s[(r, c)].clone();
-                                    unit.row_op_div(r, src.clone());
-                                    s.row_op_div(r, src);
-                                }
-                            }
-                        }
-                    }
-                }
-                for c in (1..s.num_columns()).rev() {
-                    for r in (0..c).rev() {
-                        if s[(r, c)].is_zero() {
-                            continue;
-                        }
-                        let src = s[(r, c)].clone();
-                        s.row_op_mul(c, src.clone());
-                        unit.row_op_mul(c, src.clone());
-                        s.row_op_sub(r, c);
-                        unit.row_op_sub(r, c);
-                        s.row_op_div(c, src.clone());
-                        unit.row_op_div(c, src);
-                    }
-                }
-                assert!(s.is_unit());
-                unit
-            }
-
-            fn try_inverse(&self) -> Result<Self, MatrixError> {
-                if !(*self).is_unit_dimension() {
-                    return Err(MatrixError::InitError("Matrix does not have the same number of \
-                    rows and columns - unable to make inverse.".to_string()));
-                }
-                let mut s = self.clone();
-                let mut unit = $name::unit(self.rows);
-                for r in 0..s.num_rows() {
-                    for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
-                        if c < r {
-                            if amt1.is_zero() {
-                                continue;
-                            }
-                            if s[(c, c)].is_zero() {
-                                continue;
-                            }
-                            let amt2 = (amt1 / s[(c, c)].clone()).into();
-                            s.row_op_mul(c, amt2.clone());
-                            unit.row_op_mul(c, amt2.clone());
-                            s.row_op_sub(r, c);
-                            unit.row_op_sub(r, c);
-                            s.row_op_div(c, amt2.clone());
-                            unit.row_op_div(c, amt2);
-                        } else if c == r {
-                            if amt1.is_one() {
-                                continue;
-                            } else if !amt1.is_zero() {
-                                s.row_op_div(r, amt1.clone());
-                                unit.row_op_div(r, amt1);
-                            } else if amt1.is_zero() {
-                                if s[(c, c)].is_zero() {
-                                    continue;
-                                }
-                                s.row_op_add(r, c);
-                                unit.row_op_add(r, c);
-                                if !s[(r, c)].is_one() {
-                                    let src = s[(r, c)].clone();
-                                    unit.row_op_div(r, src.clone());
-                                    s.row_op_div(r, src);
-                                }
-                            }
-                        }
-                    }
-                }
-                if !self.is_row_reduced() {
-                    return Err(MatrixError::TransformError("Was unable to make an inverse - unable \
-                    to put original matrix in REF form.".to_string()));
-                }
-                for c in (1..s.num_columns()).rev() {
-                    for r in (0..c).rev() {
-                        if s[(r, c)].is_zero() {
-                            continue;
-                        }
-                        let src = s[(r, c)].clone();
-                        s.row_op_mul(c, src.clone());
-                        unit.row_op_mul(c, src.clone());
-                        s.row_op_sub(r, c);
-                        unit.row_op_sub(r, c);
-                        s.row_op_div(c, src.clone());
-                        unit.row_op_div(c, src);
-                    }
-                }
-                if s.is_unit() {
-                    Ok(unit)
-                } else {
-                    Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
-                    original matrix in RREF form.".to_string()))
-                }
-            }
-        }
-
-        impl<T> InverseDisplay for $target_type
-            where
-                T: Div + PartialOrd + PartialEq + Display + Zero + One + Clone,
-                $target_type: REF + RowOpAdd + RowOpSub + RowOpMul<T> + RowOpDiv<T> + Unit,
-                 <T as Div>::Output: Into<T> {
-            fn inverse_display(&self) -> (Self, Option<Vec<String>>) {
-                assert!(self.is_unit_dimension());
-                if (*self).is_unit() {
-                    return (self.clone(), None);
-                }
-                let mut steps = Vec::new();
-                let mut s = self.clone();
-                let mut unit = $name::unit(self.rows);
-                for r in 0..s.num_rows() {
-                    for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
-                        if c < r {
-                            if amt1.is_zero() {
-                                continue;
-                            }
-                            if s[(c, c)].is_zero() {
-                                continue;
-                            }
-                            let amt2 = (amt1 / s[(c, c)].clone()).into();
-                            steps.push(format!("R{} - ({}) * R{} → R{0}", r, amt2, c));
-                            s.row_op_mul(c, amt2.clone());
-                            unit.row_op_mul(c, amt2.clone());
-                            s.row_op_sub(r, c);
-                            unit.row_op_sub(r, c);
-                            s.row_op_div(c, amt2.clone());
-                            unit.row_op_div(c, amt2);
-                        } else if c == r {
-                            if amt1.is_one() {
-                                continue;
-                            } else if !amt1.is_zero() {
-                                steps.push(format!("R{} / ({}) → R{0}", r, amt1));
-                                s.row_op_div(r, amt1.clone());
-                                unit.row_op_div(r, amt1);
-                            } else if amt1.is_zero() {
-                                if s[(c, c)].is_zero() {
-                                    continue;
-                                }
-                                s.row_op_add(r, c);
-                                unit.row_op_add(r, c);
-                                steps.push(format!("R{} + R{} → R{0}", r, c));
-                                if !s[(r, c)].is_one() {
-                                    let src = s[(r, c)].clone();
-                                    steps.push(format!("R{} / ({}) → R{0}", r, src));
-                                    unit.row_op_div(r, src.clone());
-                                    s.row_op_div(r, src);
-                                }
-                            }
-                        }
-                    }
-                }
-                for c in (1..s.num_columns()).rev() {
-                    for r in (0..c).rev() {
-                        if s[(r, c)].is_zero() {
-                            continue;
-                        }
-                        let src = s[(r, c)].clone();
-                        steps.push(format!("R{} - ({}) * R{} → R{0}", r, src, c));
-                        s.row_op_mul(c, src.clone());
-                        unit.row_op_mul(c, src.clone());
-                        s.row_op_sub(r, c);
-                        unit.row_op_sub(r, c);
-                        s.row_op_div(c, src.clone());
-                        unit.row_op_div(c, src);
-                    }
-                }
-                assert!(s.is_unit());
-                (unit, Some(steps))
-            }
-
-            fn try_inverse_display(&self) -> Result<(Self, Option<Vec<String>>), MatrixError> {
-                if !(*self).is_unit_dimension() {
-                    return Err(MatrixError::InitError("Matrix does not have the same number of \
-                    rows and columns - unable to make inverse.".to_string()));
-                }
-                let mut steps = Vec::new();
-                let mut s = self.clone();
-                let mut unit = $name::unit(self.rows);
-                for r in 0..s.num_rows() {
-                    for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
-                        if c < r {
-                            if amt1.is_zero() {
-                                continue;
-                            }
-                            if s[(c, c)].is_zero() {
-                                continue;
-                            }
-                            let amt2 = (amt1 / s[(c, c)].clone()).into();
-                            steps.push(format!("R{} - ({}) * R{} → R{0}", r, amt2, c));
-                            s.row_op_mul(c, amt2.clone());
-                            unit.row_op_mul(c, amt2.clone());
-                            s.row_op_sub(r, c);
-                            unit.row_op_sub(r, c);
-                            s.row_op_div(c, amt2.clone());
-                            unit.row_op_div(c, amt2);
-                            } else if c == r {
-                            if amt1.is_one() {
-                                continue;
-                            } else if !amt1.is_zero() {
-                                steps.push(format!("R{} / ({}) → R{0}", r, amt1));
-                                s.row_op_div(r, amt1.clone());
-                                unit.row_op_div(r, amt1);
-                            } else if amt1.is_zero() {
-                                if s[(c, c)].is_zero() {
-                                    continue;
-                                }
-                                s.row_op_add(r, c);
-                                unit.row_op_add(r, c);
-                                steps.push(format!("R{} + R{} → R{0}", r, c));
-                                if !s[(r, c)].is_one() {
-                                    let src = s[(r, c)].clone();
-                                    steps.push(format!("R{} / ({}) → R{0}", r, src));
-                                    unit.row_op_div(r, src.clone());
-                                    s.row_op_div(r, src);
-                                }
-                            }
-                        }
-                    }
-                }
-                if !self.is_row_reduced() {
-                    return Err(MatrixError::TransformError("Was unable to make an inverse - unable \
-                    to put original matrix in REF form.".to_string()));
-                }
-                for c in (1..s.num_columns()).rev() {
-                    for r in (0..c).rev() {
-                        if s[(r, c)].is_zero() {
-                            continue;
-                        }
-                        let src = s[(r, c)].clone();
-                        steps.push(format!("R{} - ({}) * R{} → R{0}", r, src, c));
-                        s.row_op_mul(c, src.clone());
-                        unit.row_op_mul(c, src.clone());
-                        s.row_op_sub(r, c);
-                        unit.row_op_sub(r, c);
-                        s.row_op_div(c, src.clone());
-                        unit.row_op_div(c, src);
-                    }
-                }
-                if s.is_unit() {
-                    Ok((unit, Some(steps)))
-                } else {
-                    Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
-                    original matrix in RREF form.".to_string()))
-                }
-            }
-        }
-
-        impl<T> InverseDebug for $target_type
-            where
-                T: Div + PartialOrd + PartialEq + Debug + Zero + One + Clone,
-                $target_type: REF + RowOpAdd + RowOpSub + RowOpMul<T> + RowOpDiv<T> + Unit,
-                 <T as Div>::Output: Into<T> {
-            fn inverse_debug(&self) -> (Self, Option<Vec<String>>) {
-                assert!(self.is_unit_dimension());
-                if self.is_unit() {
-                    return (self.clone(), None);
-                }
-                let mut steps = Vec::new();
-                let mut s = self.clone();
-                let mut unit = $name::unit(self.rows);
-                for r in 0..s.num_rows() {
-                    for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
-                        if c < r {
-                            if amt1.is_zero() {
-                                continue;
-                            }
-                            if s[(c, c)].is_zero() {
-                                continue;
-                            }
-                            let amt2 = (amt1 / s[(c, c)].clone()).into();
-                            steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, amt2, c));
-                            s.row_op_mul(c, amt2.clone());
-                            unit.row_op_mul(c, amt2.clone());
-                            s.row_op_sub(r, c);
-                            unit.row_op_sub(r, c);
-                            s.row_op_div(c, amt2.clone());
-                            unit.row_op_div(c, amt2);
-                        } else if c == r {
-                            if amt1.is_one() {
-                                continue;
-                            } else if !amt1.is_zero() {
-                                steps.push(format!("R{} / ({:?}) → R{0}", r, amt1));
-                                s.row_op_div(r, amt1.clone());
-                                unit.row_op_div(r, amt1);
-                            } else if amt1.is_zero() {
-                                if s[(c, c)].is_zero() {
-                                    continue;
-                                }
-                                s.row_op_add(r, c);
-                                unit.row_op_add(r, c);
-                                steps.push(format!("R{} + R{} → R{0}", r, c));
-                                if !s[(r, c)].is_one() {
-                                    let src = s[(r, c)].clone();
-                                    steps.push(format!("R{} / ({:?}) → R{0}", r, src));
-                                    unit.row_op_div(r, src.clone());
-                                    s.row_op_div(r, src.clone());
-                                }
-                            }
-                        }
-                    }
-                }
-                assert!(s.is_row_reduced());
-                for c in (1..s.num_columns()).rev() {
-                    for r in (0..c).rev() {
-                        if s[(r, c)].is_zero() {
-                            continue;
-                        }
-                        let src = s[(r, c)].clone();
-                        steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, src, c));
-                        s.row_op_mul(c, src.clone());
-                        unit.row_op_mul(c, src.clone());
-                        s.row_op_sub(r, c);
-                        unit.row_op_sub(r, c);
-                        s.row_op_div(c, src.clone());
-                        unit.row_op_div(c, src);
-                    }
-                }
-                assert!(s.is_unit());
-                (unit, Some(steps))
-            }
-
-            fn try_inverse_debug(&self) -> Result<(Self, Option<Vec<String>>), MatrixError> {
-                if !(*self).is_unit_dimension() {
-                    return Err(MatrixError::InitError("Matrix does not have the same number of \
-                    rows and columns - unable to make inverse.".to_string()));
-                }
-                let mut steps = Vec::new();
-                let mut s = self.clone();
-                let mut unit = $name::unit(self.rows);
-                for r in 0..s.num_rows() {
-                    for c in 0..r + 1 {
-                        let amt1 = s[(r, c)].clone();
-                        if c < r {
-                            if amt1.is_zero() {
-                                continue;
-                            }
-                            if s[(c, c)].is_zero() {
-                                continue;
-                            }
-                            let amt2 = (amt1 / s[(c, c)].clone()).into();
-                            steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, amt2, c));
-                            s.row_op_mul(c, amt2.clone());
-                            unit.row_op_mul(c, amt2.clone());
-                            s.row_op_sub(r, c);
-                            unit.row_op_sub(r, c);
-                            s.row_op_div(c, amt2.clone());
-                            unit.row_op_div(c, amt2);
-                        } else if c == r {
-                            if amt1.is_one() {
-                                continue;
-                            } else if !amt1.is_zero() {
-                                steps.push(format!("R{} / ({:?}) → R{0}", r, amt1));
-                                s.row_op_div(r, amt1.clone());
-                                unit.row_op_div(r, amt1);
-                            } else if amt1.is_zero() {
-                                if s[(c, c)].is_zero() {
-                                    continue;
-                                }
-                                s.row_op_add(r, c);
-                                unit.row_op_add(r, c);
-                                steps.push(format!("R{} + R{} → R{0}", r, c));
-                                if !s[(r, c)].is_one() {
-                                    let src = s[(r, c)].clone();
-                                    steps.push(format!("R{} / ({:?}) → R{0}", r, src));
-                                    unit.row_op_div(r, src.clone());
-                                    s.row_op_div(r, src.clone());
-                                }
-                            }
-                        }
-                    }
-                }
-                if !self.is_row_reduced() {
-                    return Err(MatrixError::TransformError("Was unable to make an inverse - unable \
-                    to put original matrix in REF form.".to_string()));
-                }
-                for c in (1..s.num_columns()).rev() {
-                    for r in (0..c).rev() {
-                        if s[(r, c)].is_zero() {
-                            continue;
-                        }
-                        let src = s[(r, c)].clone();
-                        steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, src, c));
-                        s.row_op_mul(c, src.clone());
-                        unit.row_op_mul(c, src.clone());
-                        s.row_op_sub(r, c);
-                        unit.row_op_sub(r, c);
-                        s.row_op_div(c, src.clone());
-                        unit.row_op_div(c, src);
-                    }
-                }
-                if s.is_unit() {
-                    Ok((unit, Some(steps)))
-                } else {
-                    Err(MatrixError::TransformError("Was unable to make an inverse - unable to put \
-                    original matrix in RREF form.".to_string()))
-                }
-            }
-        }
-
-        impl<T: Div + PartialOrd + PartialEq + Zero + One + Clone> InverseAssign for $target_type
-            where
-                $target_type: REF + RowOpAdd + RowOpSub + RowOpMul<T> + RowOpDiv<T> + Unit,
-                 <T as Div>::Output: Into<T> {
-            fn inverse_assign(&mut self) {
+            fn inverse(&mut self) {
                 assert!(self.is_unit_dimension());
                 let mut s = $name::unit(self.rows);
                 swap(&mut s, self);
@@ -1064,7 +641,7 @@ macro_rules! transforms_impl {
                 assert!(s.is_unit());
             }
 
-            fn try_inverse_assign(&mut self) -> Result<(), MatrixError> {
+            fn try_inverse(&mut self) -> Result<(), MatrixError> {
                 if !(*self).is_unit_dimension() {
                     return Err(MatrixError::InitError("Matrix does not have the same number of \
                     rows and columns - unable to make inverse.".to_string()));
@@ -1136,12 +713,12 @@ macro_rules! transforms_impl {
             }
         }
 
-        impl<T> InverseAssignDisplay for $target_type
+        impl<T> InverseDisplay for $target_type
             where
                 T: Div + PartialOrd + PartialEq + Display + Zero + One + Clone,
                 $target_type: REF + RowOpAdd + RowOpSub + RowOpMul<T> + RowOpDiv<T> + Unit,
                  <T as Div>::Output: Into<T> {
-            fn inverse_assign_display(&mut self) -> Option<Vec<String>> {
+            fn inverse_display(&mut self) -> Option<Vec<String>> {
                 assert!(self.is_unit_dimension());
                 if (*self).is_unit() {
                     return None;
@@ -1160,7 +737,7 @@ macro_rules! transforms_impl {
                                 continue;
                             }
                             let amt2 = (amt1 / s[(c, c)].clone()).into();
-                            steps.push(format!("R{} - ({}) * R{} → R{0}", r, amt2, c));
+                            steps.push(format!("R{} - ({}) * R{} -> R{0}", r, amt2, c));
                             s.row_op_mul(c, amt2.clone());
                             (*self).row_op_mul(c, amt2.clone());
                             s.row_op_sub(r, c);
@@ -1171,7 +748,7 @@ macro_rules! transforms_impl {
                             if amt1.is_one() {
                                 continue;
                             } else if !amt1.is_zero() {
-                                steps.push(format!("R{} / ({}) → R{0}", r, amt1));
+                                steps.push(format!("R{} / ({}) -> R{0}", r, amt1));
                                 s.row_op_div(r, amt1.clone());
                                 (*self).row_op_div(r, amt1);
                             } else if amt1.is_zero() {
@@ -1180,10 +757,10 @@ macro_rules! transforms_impl {
                                 }
                                 s.row_op_add(r, c);
                                 (*self).row_op_add(r, c);
-                                steps.push(format!("R{} + R{} → R{0}", r, c));
+                                steps.push(format!("R{} + R{} -> R{0}", r, c));
                                 if !s[(r, c)].is_one() {
                                     let src = s[(r, c)].clone();
-                                    steps.push(format!("R{} / ({}) → R{0}", r, src));
+                                    steps.push(format!("R{} / ({}) -> R{0}", r, src));
                                     (*self).row_op_div(r, src.clone());
                                     s.row_op_div(r, src);
                                 }
@@ -1197,7 +774,7 @@ macro_rules! transforms_impl {
                             continue;
                         }
                         let src = s[(r, c)].clone();
-                        steps.push(format!("R{} - ({}) * R{} → R{0}", r, src, c));
+                        steps.push(format!("R{} - ({}) * R{} -> R{0}", r, src, c));
                         s.row_op_mul(c, src.clone());
                         (*self).row_op_mul(c, src.clone());
                         s.row_op_sub(r, c);
@@ -1210,7 +787,7 @@ macro_rules! transforms_impl {
                 Some(steps)
             }
 
-            fn try_inverse_assign_display(&mut self) -> Result<Option<Vec<String>>, MatrixError> {
+            fn try_inverse_display(&mut self) -> Result<Option<Vec<String>>, MatrixError> {
                 if !(*self).is_unit_dimension() {
                     return Err(MatrixError::InitError("Matrix does not have the same number of \
                     rows and columns - unable to make inverse.".to_string()));
@@ -1232,7 +809,7 @@ macro_rules! transforms_impl {
                                 continue;
                             }
                             let amt2 = (amt1 / s[(c, c)].clone()).into();
-                            steps.push(format!("R{} - ({}) * R{} → R{0}", r, amt2, c));
+                            steps.push(format!("R{} - ({}) * R{} -> R{0}", r, amt2, c));
                             s.row_op_mul(c, amt2.clone());
                             (*self).row_op_mul(c, amt2.clone());
                             s.row_op_sub(r, c);
@@ -1243,7 +820,7 @@ macro_rules! transforms_impl {
                             if amt1.is_one() {
                                 continue;
                             } else if !amt1.is_zero() {
-                                steps.push(format!("R{} / ({}) → R{0}", r, amt1));
+                                steps.push(format!("R{} / ({}) -> R{0}", r, amt1));
                                 s.row_op_div(r, amt1.clone());
                                 (*self).row_op_div(r, amt1);
                             } else if amt1.is_zero() {
@@ -1252,10 +829,10 @@ macro_rules! transforms_impl {
                                 }
                                 s.row_op_add(r, c);
                                 (*self).row_op_add(r, c);
-                                steps.push(format!("R{} + R{} → R{0}", r, c));
+                                steps.push(format!("R{} + R{} -> R{0}", r, c));
                                 if !s[(r, c)].is_one() {
                                     let src = s[(r, c)].clone();
-                                    steps.push(format!("R{} / ({}) → R{0}", r, src));
+                                    steps.push(format!("R{} / ({}) -> R{0}", r, src));
                                     (*self).row_op_div(r, src.clone());
                                     s.row_op_div(r, src);
                                 }
@@ -1273,7 +850,7 @@ macro_rules! transforms_impl {
                             continue;
                         }
                         let src = s[(r, c)].clone();
-                        steps.push(format!("R{} - ({}) * R{} → R{0}", r, src, c));
+                        steps.push(format!("R{} - ({}) * R{} -> R{0}", r, src, c));
                         s.row_op_mul(c, src.clone());
                         (*self).row_op_mul(c, src.clone());
                         s.row_op_sub(r, c);
@@ -1291,11 +868,12 @@ macro_rules! transforms_impl {
             }
         }
 
-        impl<T: Div + PartialOrd + PartialEq + Zero + One + Debug + Clone> InverseAssignDebug for $target_type
+        impl<T> InverseDebug for $target_type
             where
+                T: Div + PartialOrd + PartialEq + Debug + Zero + One + Clone,
                 $target_type: REF + RowOpAdd + RowOpSub + RowOpMul<T> + RowOpDiv<T> + Unit,
-                <T as Div>::Output: Into<T> {
-            fn inverse_assign_debug(&mut self) -> Option<Vec<String>> {
+                 <T as Div>::Output: Into<T> {
+            fn inverse_debug(&mut self) -> Option<Vec<String>> {
                 assert!(self.is_unit_dimension());
                 if (*self).is_unit() {
                     return None;
@@ -1314,7 +892,7 @@ macro_rules! transforms_impl {
                                 continue;
                             }
                             let amt2 = (amt1 / s[(c, c)].clone()).into();
-                            steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, amt2, c));
+                            steps.push(format!("R{} - ({:?}) * R{} -> R{0}", r, amt2, c));
                             s.row_op_mul(c, amt2.clone());
                             (*self).row_op_mul(c, amt2.clone());
                             s.row_op_sub(r, c);
@@ -1325,7 +903,7 @@ macro_rules! transforms_impl {
                             if amt1.is_one() {
                                 continue;
                             } else if !amt1.is_zero() {
-                                steps.push(format!("R{} / ({:?}) → R{0}", r, amt1));
+                                steps.push(format!("R{} / ({:?}) -> R{0}", r, amt1));
                                 s.row_op_div(r, amt1.clone());
                                 (*self).row_op_div(r, amt1);
                             } else if amt1.is_zero() {
@@ -1334,10 +912,10 @@ macro_rules! transforms_impl {
                                 }
                                 s.row_op_add(r, c);
                                 (*self).row_op_add(r, c);
-                                steps.push(format!("R{} + R{} → R{0}", r, c));
+                                steps.push(format!("R{} + R{} -> R{0}", r, c));
                                 if !s[(r, c)].is_one() {
                                     let src = s[(r, c)].clone();
-                                    steps.push(format!("R{} / ({:?}) → R{0}", r, src));
+                                    steps.push(format!("R{} / ({:?}) -> R{0}", r, src));
                                     (*self).row_op_div(r, src.clone());
                                     s.row_op_div(r, src);
                                 }
@@ -1351,7 +929,7 @@ macro_rules! transforms_impl {
                             continue;
                         }
                         let src = s[(r, c)].clone();
-                        steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, src, c));
+                        steps.push(format!("R{} - ({:?}) * R{} -> R{0}", r, src, c));
                         s.row_op_mul(c, src.clone());
                         (*self).row_op_mul(c, src.clone());
                         s.row_op_sub(r, c);
@@ -1364,7 +942,7 @@ macro_rules! transforms_impl {
                 Some(steps)
             }
 
-            fn try_inverse_assign_debug(&mut self) -> Result<Option<Vec<String>>, MatrixError> {
+            fn try_inverse_debug(&mut self) -> Result<Option<Vec<String>>, MatrixError> {
                 if !(*self).is_unit_dimension() {
                     return Err(MatrixError::InitError("Matrix does not have the same number of \
                     rows and columns - unable to make inverse.".to_string()));
@@ -1386,7 +964,7 @@ macro_rules! transforms_impl {
                                 continue;
                             }
                             let amt2 = (amt1 / s[(c, c)].clone()).into();
-                            steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, amt2, c));
+                            steps.push(format!("R{} - ({:?}) * R{} -> R{0}", r, amt2, c));
                             s.row_op_mul(c, amt2.clone());
                             (*self).row_op_mul(c, amt2.clone());
                             s.row_op_sub(r, c);
@@ -1397,7 +975,7 @@ macro_rules! transforms_impl {
                             if amt1.is_one() {
                                 continue;
                             } else if !amt1.is_zero() {
-                                steps.push(format!("R{} / ({:?}) → R{0}", r, amt1));
+                                steps.push(format!("R{} / ({:?}) -> R{0}", r, amt1));
                                 s.row_op_div(r, amt1.clone());
                                 (*self).row_op_div(r, amt1);
                             } else if amt1.is_zero() {
@@ -1406,10 +984,10 @@ macro_rules! transforms_impl {
                                 }
                                 s.row_op_add(r, c);
                                 (*self).row_op_add(r, c);
-                                steps.push(format!("R{} + R{} → R{0}", r, c));
+                                steps.push(format!("R{} + R{} -> R{0}", r, c));
                                 if !s[(r, c)].is_one() {
                                     let src = s[(r, c)].clone();
-                                    steps.push(format!("R{} / ({:?}) → R{0}", r, src));
+                                    steps.push(format!("R{} / ({:?}) -> R{0}", r, src));
                                     (*self).row_op_div(r, src.clone());
                                     s.row_op_div(r, src);
                                 }
@@ -1427,7 +1005,7 @@ macro_rules! transforms_impl {
                             continue;
                         }
                         let src = s[(r, c)].clone();
-                        steps.push(format!("R{} - ({:?}) * R{} → R{0}", r, src, c));
+                        steps.push(format!("R{} - ({:?}) * R{} -> R{0}", r, src, c));
                         s.row_op_mul(c, src.clone());
                         (*self).row_op_mul(c, src.clone());
                         s.row_op_sub(r, c);

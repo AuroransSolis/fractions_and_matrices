@@ -160,4 +160,20 @@ mod tests {
         bar.in_place_transpose();
         assert_eq!(foo, bar);
     }
+
+    #[test]
+    fn possible_ref_test() {
+        use fractions::*;
+        let tmp = vec![1, 6, -10, 1, 3, 1, 0, -3, 6];
+        let tmp = tmp.into_iter().map(|n| Fraction::from(n)).collect::<Vec<Fraction>>();
+        let mut foo: Matrix<Fraction> = Matrix::new_from_vec((3, 3), tmp, RowAligned).unwrap();
+        use matrices::transforms::{REF, REFDisplay};
+        println!("Start:\n{}", foo);
+        println!("Attempting REF.");
+        //foo.gaussian_elim();
+        let bar = foo.gaussian_elim_display().unwrap();
+        println!("foo:\n{}", foo);
+        println!("Steps: {:?}", bar);
+        assert!(!foo.is_row_reduced());
+    }
 }

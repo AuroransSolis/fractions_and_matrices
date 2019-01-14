@@ -102,11 +102,11 @@ impl<T: Display> Display for AugmentedMatrix<T> {
             let mut line = String::from(""); // String for each individual line
             // Add the appropriate character for the section of the bracket at the start of each line
             if a == 0 {
-                line = format!("⎡ {}", line);
+                line = format!("┌ {}", line);
             } else if a == self.num_rows() - 1 {
-                line = format!("⎣ {}", line);
+                line = format!("└ {}", line);
             } else {
-                line = format!("⎢ {}", line);
+                line = format!("│ {}", line);
             }
             // Add spacing to line up the right side of the numbers in each column
             for b in 0..self.num_columns() + 1 {
@@ -116,7 +116,7 @@ impl<T: Display> Display for AugmentedMatrix<T> {
                     spacer_left = format!("{}{}", spacer_left, " ");
                 }
                 if b == self.num_columns() {
-                    line = format!("{}| {}{}", line, spacer_left, elem_string);
+                    line = format!("{}│ {}{}", line, spacer_left, elem_string);
                 } else if b == self.num_columns() - 1 {
                     line = format!("{}{}{} ", line, spacer_left, elem_string);
                 } else {
@@ -125,11 +125,11 @@ impl<T: Display> Display for AugmentedMatrix<T> {
             }
             // Append appropriate end symbol for bracket section at the end of each line
             if a == 0 {
-                line = format!("{} ⎤", line);
+                line = format!("{} ┐", line);
             } else if a == self.num_rows() - 1 {
-                line = format!("{} ⎦", line);
+                line = format!("{} ┘", line);
             } else {
-                line = format!("{} ⎥", line);
+                line = format!("{} │", line);
             }
             // Add line to matrix string, add newline if it's not the last line
             if a == self.num_rows() - 1 {
